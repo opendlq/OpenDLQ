@@ -12,7 +12,7 @@ flowchart LR
     Store <--> Policy[Policy Engine]
     Store <--> Transient[Transient Runner]
     Store <--> Runbook[Runbook Runner]
-    Store <--> Poison[Poison Handler]
+    Store <--> Poison[Poison Runner]
     Store <--> Enricher
     Store <--> Publisher
     Store <--> Purger
@@ -42,7 +42,7 @@ flowchart LR
 | **Policy Engine** | `received` | Classifies. Checks exhaustion. Routes by precedence: matching runbook, then transient, then permanent. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
 | **Transient Runner** | `retrying` due; `held`; `replaying` | Schedules retries with backoff. Opens and closes circuit breakers. Runs probes. Confirms recovery. | `outbox`; `replaying`, `held`, `retrying`, `recovered` or `received` | Probe, Recovery Detector |
 | **Runbook Runner** | `runbook_matched` | Executes the runbook action within its guardrails. Records each step. | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `awaiting_operator` | Transformer, Runbook Action |
-| **Poison Handler** | `awaiting_operator` not yet announced | Updates the cause group. Marks sampled messages for enrichment. Emits an event. | `notified_at`; `enrichment = pending`; `poisoned` event | — |
+| **Poison Runner** | `awaiting_operator` not yet announced | Updates the cause group. Marks sampled messages for enrichment. Emits an event. | `notified_at`; `enrichment = pending`; `poisoned` event | — |
 | **Enricher** | Messages with `enrichment = pending` | Waits for indexing, fetches logs by correlation IDs, retries. Asynchronous: never blocks another controller. | `enrichment` status, log link and snippet | Log Provider |
 | **Publisher** | Pending `outbox` rows | Serializes and publishes to the target. Marks the row as sent. | `outbox.sent_at` | Sink, Serde |
 | **Purger** | Expired messages; payloads past retention | Moves messages to `expired`. Archives and deletes payloads. Never deletes `transitions`. | `expired`; archived payload | Store |
@@ -120,7 +120,7 @@ stateDiagram-v2
 | `next_retry_at` | timestamp | Next scheduled retry |
 | `runbook` | string | Name and version of the matching runbook |
 | `expires_at` | timestamp | TTL deadline |
-| `notified_at` | timestamp | When the Poison Handler announced it |
+| `notified_at` | timestamp | When the Poison Runner announced it |
 | `enrichment` | enum | `skipped`, `pending`, `enriched`, `not_found`, `unavailable` |
 | `correlation` | map | Correlation IDs extracted from headers |
 

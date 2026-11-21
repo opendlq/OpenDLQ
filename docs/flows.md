@@ -111,7 +111,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant S as State store
-    participant PH as Poison Handler
+    participant PH as Poison Runner
     participant E as Enricher
     participant LP as Log provider
     participant AW as Alerts Watcher
