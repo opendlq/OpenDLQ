@@ -2,6 +2,20 @@
 
 OpenDLQ follows the controller pattern used by Kubernetes. A single state store holds the state of every message and is the source of truth. Each component is a controller: it watches the messages in the state it owns, acts, and writes the new state. Components never call each other. The step-by-step sequence for each situation is in [flows](flows.md).
 
+## Who decides
+
+The **Policy Engine** is the only component that decides which path a message takes. The three **runners** execute a path:
+
+| Path | Runner | Executes |
+| --- | --- | --- |
+| Transient | **Transient Runner** | Retry with backoff, circuit breaker, probe, drain |
+| Known permanent | **Runbook Runner** | The declared runbook action, within its guardrails |
+| Unknown permanent | **Poison Runner** | Grouping and announcement, so a person can decide |
+
+A runner decides *how and when* within its path, following the declared `Policy`. It never picks another path. When a runner reaches the end of its path without success (a runbook action fails, an approval is rejected), it returns the message to `enriched` with the outcome recorded, and the Policy Engine decides again. Operators are the other decision point: their actions are explicit and audited.
+
+In Kubernetes terms, the Policy Engine plays the scheduler and the runners play the kubelet.
+
 ```mermaid
 flowchart LR
     DLQ[(External DLQ)] --> Source
@@ -41,9 +55,9 @@ flowchart LR
 | --- | --- | --- | --- | --- |
 | **Collector** | Source | Consumes the DLQ. Extracts headers and correlation IDs. Computes `group_key`. Recognizes re-entries by `x-dlq-id`. Calls no external service. Commits the offset after the insert. | New message or re-entry in `received` | Source, Serde |
 | **Enricher** | `received` | Queries the configured sources by correlation IDs, or reuses a recent result for the same group. Never blocks: on failure or timeout it moves on with `unavailable`. | `enrichments` row; `enriched` | Log Provider |
-| **Policy Engine** | `enriched` | Classifies. Checks exhaustion. Routes by precedence: matching runbook, then transient, then permanent. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
+| **Policy Engine** | `enriched` | Classifies. Checks exhaustion. Routes by precedence: exhausted, matching runbook, transient, permanent. Skips paths that already failed for this message. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
 | **Transient Runner** | `retrying` due; `held`; `replaying` | Schedules retries with backoff. Opens and closes circuit breakers. Runs probes. Confirms recovery. | `outbox`; `replaying`, `held`, `retrying`, `recovered` or `received` | Probe, Recovery Detector |
-| **Runbook Runner** | `runbook_matched` | Executes the runbook action within its guardrails. Records each step. | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `awaiting_operator` | Transformer, Runbook Action |
+| **Runbook Runner** | `runbook_matched` | Executes the runbook action within its guardrails. Records each step. Returns failures to the Policy Engine. | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `enriched` | Transformer, Runbook Action |
 | **Poison Runner** | `awaiting_operator` not yet announced | Updates the cause group. Emits an event. | `notified_at`; `poisoned` event | — |
 | **Publisher** | Pending `outbox` rows | Serializes and publishes to the target. Marks the row as sent. | `outbox.sent_at` | Sink, Serde |
 | **Purger** | Expired messages; payloads past retention | Moves messages to `expired`. Archives and deletes payloads. Never deletes `transitions`. | `expired`; archived payload | Store |
@@ -69,13 +83,13 @@ stateDiagram-v2
     retrying --> replaying: retry due
     runbook_matched --> awaiting_approval: approval required
     awaiting_approval --> runbook_matched: approved
-    awaiting_approval --> awaiting_operator: rejected
+    awaiting_approval --> enriched: rejected
     runbook_matched --> replaying: transform and replay
     runbook_matched --> routed: route
     runbook_matched --> discarded: discard
-    runbook_matched --> awaiting_operator: action fails
+    runbook_matched --> enriched: action fails
     awaiting_operator --> replaying: operator replays
-    awaiting_operator --> retrying: operator reclassifies
+    awaiting_operator --> enriched: operator reclassifies
     awaiting_operator --> discarded: operator discards
     replaying --> recovered: success confirmed
     replaying --> received: back in the DLQ
@@ -101,7 +115,8 @@ stateDiagram-v2
 | `expired` | Terminal. TTL reached from any open state | — |
 
 - Exhausted is not a state. When attempts reach the policy maximum, the Policy Engine sends the message to `awaiting_operator`.
-- There is no automatic transition from `awaiting_operator` to `retrying`. Only an operator reclassifies.
+- There is no automatic transition out of `awaiting_operator`. An operator replays, discards, or reclassifies; a reclassification sends the message back to `enriched` and the Policy Engine routes it with the operator's classification.
+- A message returned to `enriched` keeps its history. The Policy Engine does not route it again to a path that already failed for it.
 - A replayed message that fails again returns to the DLQ with the same `x-dlq-id`. The Collector attaches the new attempt to the existing record and moves it back to `received`. The message keeps its identity.
 - Time in `held` does not count as an attempt.
 

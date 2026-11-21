@@ -10,8 +10,8 @@ How a message moves through OpenDLQ in each situation. Every arrow into the stat
 | [4. Transient recovery](#4-transient-recovery) | `retrying` | `recovered`, or back to `received` |
 | [5. Dependency outage](#5-dependency-outage) | Many failures on one dependency | Backlog drained |
 | [6. Permanent failure and alert](#6-permanent-failure-and-alert) | `awaiting_operator` | Alert sent, with logs |
-| [7. Runbook](#7-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded` or `awaiting_operator` |
-| [8. Operator action](#8-operator-action) | An operator command | `replaying`, `retrying` or `discarded` |
+| [7. Runbook](#7-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded`, or back to `enriched` |
+| [8. Operator action](#8-operator-action) | An operator command | `replaying`, `discarded`, or back to `enriched` |
 | [9. Expiry and purge](#9-expiry-and-purge) | TTL or retention reached | `expired`, payload archived |
 | [10. Configuration change](#10-configuration-change) | A YAML change | Resources applied |
 
@@ -82,6 +82,10 @@ Precedence:
 3. Transient and the dependency circuit is open → `held`.
 4. Transient → `retrying`, with `next_retry_at` from the backoff.
 5. Permanent → `awaiting_operator`.
+
+An operator's classification, when present, replaces the classifier's answer.
+
+A path that already failed for this message (a runbook that failed or was rejected) is skipped. See [classification](classification.md) for how the kind is decided.
 
 ## 4. Transient recovery
 
@@ -163,7 +167,7 @@ sequenceDiagram
     R->>R: guardrails: expired? rate limit? approvals left?
     alt approval required
         R->>S: state = awaiting_approval
-        Op->>S: approve (or reject → awaiting_operator)
+        Op->>S: approve (or reject → enriched)
         S->>R: runbook_matched (approved)
     end
     alt transform + replay
@@ -173,11 +177,12 @@ sequenceDiagram
     else discard
         R->>S: state = discarded, reason
     else action fails or guardrail blocks
-        R->>S: state = awaiting_operator
+        R->>S: outcome recorded, state = enriched
     end
 ```
 
-- An expired runbook never matches. The messages it covered go to `awaiting_operator` again.
+- The Runbook Runner never picks another path. A failure goes back to `enriched`, and the Policy Engine routes the message again without that runbook.
+- An expired runbook never matches. The messages it covered go to whichever path the Policy Engine picks next, usually `awaiting_operator`.
 - Every step writes the runbook name and version to `transitions`.
 
 ## 8. Operator action
@@ -196,7 +201,7 @@ sequenceDiagram
 
 - The API never publishes. It writes the decision; the controllers execute it.
 - Edit-and-replay stores the new payload with the decision. The original payload stays in history.
-- Reclassifying permanent as transient moves the messages to `retrying`. It is the only path back to automatic retries.
+- Reclassifying sends the messages back to `enriched` with the operator's classification, and the Policy Engine routes them. Reclassifying permanent as transient is the only path back to automatic retries.
 
 ## 9. Expiry and purge
 
