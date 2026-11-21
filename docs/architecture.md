@@ -9,11 +9,12 @@ flowchart LR
     CLI[API · CLI · MCP] --> Store
     CFG[Declarative config] --> Store
     Collector -->|insert| Store[(State store)]
+    Store <--> Enricher
+    Enricher --> Logs[(Log backend)]
     Store <--> Policy[Policy Engine]
     Store <--> Transient[Transient Runner]
     Store <--> Runbook[Runbook Runner]
     Store <--> Poison[Poison Runner]
-    Store <--> Enricher
     Store <--> Publisher
     Store <--> Purger
     Publisher --> Sink
@@ -38,18 +39,18 @@ flowchart LR
 
 | Component | Watches | Does | Writes | Plugins |
 | --- | --- | --- | --- | --- |
-| **Collector** | Source | Consumes the DLQ. Extracts headers and correlation IDs. Recognizes re-entries by `x-dlq-id`. Calls no external service. Commits the offset after the insert. | New message or re-entry in `received` | Source, Serde |
-| **Policy Engine** | `received` | Classifies. Checks exhaustion. Routes by precedence: matching runbook, then transient, then permanent. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
+| **Collector** | Source | Consumes the DLQ. Extracts headers and correlation IDs. Computes `group_key`. Recognizes re-entries by `x-dlq-id`. Calls no external service. Commits the offset after the insert. | New message or re-entry in `received` | Source, Serde |
+| **Enricher** | `received` | Queries the configured sources by correlation IDs, or reuses a recent result for the same group. Never blocks: on failure or timeout it moves on with `unavailable`. | `enrichments` row; `enriched` | Log Provider |
+| **Policy Engine** | `enriched` | Classifies. Checks exhaustion. Routes by precedence: matching runbook, then transient, then permanent. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
 | **Transient Runner** | `retrying` due; `held`; `replaying` | Schedules retries with backoff. Opens and closes circuit breakers. Runs probes. Confirms recovery. | `outbox`; `replaying`, `held`, `retrying`, `recovered` or `received` | Probe, Recovery Detector |
 | **Runbook Runner** | `runbook_matched` | Executes the runbook action within its guardrails. Records each step. | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `awaiting_operator` | Transformer, Runbook Action |
-| **Poison Runner** | `awaiting_operator` not yet announced | Updates the cause group. Marks sampled messages for enrichment. Emits an event. | `notified_at`; `enrichment = pending`; `poisoned` event | — |
-| **Enricher** | Messages with `enrichment = pending` | Waits for indexing, fetches logs by correlation IDs, retries. Asynchronous: never blocks another controller. | `enrichment` status, log link and snippet | Log Provider |
+| **Poison Runner** | `awaiting_operator` not yet announced | Updates the cause group. Emits an event. | `notified_at`; `poisoned` event | — |
 | **Publisher** | Pending `outbox` rows | Serializes and publishes to the target. Marks the row as sent. | `outbox.sent_at` | Sink, Serde |
 | **Purger** | Expired messages; payloads past retention | Moves messages to `expired`. Archives and deletes payloads. Never deletes `transitions`. | `expired`; archived payload | Store |
 | **Analytics Engine** | `transitions` (CDC or rollup) | Computes funnel, cost, trends, recurrence. Exports OpenTelemetry and `/metrics`. Serves `/analytics`. | Rollups; analytic condition events | — |
-| **Alerts Watcher** | Events from `transitions` and Analytics; alert instances | Evaluates declared `Alert` resources. Waits for enrichment as each alert declares. The only component that notifies. | Alert instances: `pending_enrichment`, `sent`, `followed_up` | Notifier |
+| **Alerts Watcher** | Events from `transitions` and Analytics; alert instances | Evaluates declared `Alert` resources. The only component that notifies. | Alert instances: `pending`, `sent` | Notifier |
 
-The Collector never queries logs. If the logging backend is down, ingestion continues.
+The Collector never queries logs. If the logging backend is down, ingestion continues, and the Enricher moves messages on with `unavailable` after its timeout.
 
 Runners never notify. They emit events (`exhausted`, `poisoned`, `runbook_step`). The Alerts Watcher decides whether and whom to notify.
 
@@ -58,10 +59,11 @@ Runners never notify. They emit events (`exhausted`, `poisoned`, `runbook_step`)
 ```mermaid
 stateDiagram-v2
     [*] --> received
-    received --> retrying: transient
-    received --> held: transient, circuit open
-    received --> runbook_matched: runbook matches
-    received --> awaiting_operator: permanent or exhausted
+    received --> enriched: enrichment done or skipped
+    enriched --> retrying: transient
+    enriched --> held: transient, circuit open
+    enriched --> runbook_matched: runbook matches
+    enriched --> awaiting_operator: permanent or exhausted
     retrying --> held: circuit opens
     held --> retrying: probe passes
     retrying --> replaying: retry due
@@ -85,7 +87,8 @@ stateDiagram-v2
 
 | State | Meaning | Left by |
 | --- | --- | --- |
-| `received` | Stored by the Collector, not yet classified | Policy Engine |
+| `received` | Stored by the Collector, not yet enriched | Enricher |
+| `enriched` | Enrichment finished (or skipped, or unavailable). Ready to classify | Policy Engine |
 | `retrying` | Transient, retry scheduled at `next_retry_at` | Transient Runner |
 | `held` | Transient, dependency circuit open. Nothing is scheduled | Transient Runner |
 | `replaying` | In the outbox or published, waiting for confirmation | Transient Runner or Collector |
@@ -121,7 +124,7 @@ stateDiagram-v2
 | `runbook` | string | Name and version of the matching runbook |
 | `expires_at` | timestamp | TTL deadline |
 | `notified_at` | timestamp | When the Poison Runner announced it |
-| `enrichment` | enum | `skipped`, `pending`, `enriched`, `not_found`, `unavailable` |
+| `enrichment_id` | UUID | Reference to the result in `enrichments`. See [enrichment](enrichment.md) |
 | `correlation` | map | Correlation IDs extracted from headers |
 
 The history of state changes and the audit trail live in `transitions`, not on the message.
@@ -152,7 +155,7 @@ Not pluggable: the state machine, the resource model, the audit log, the header 
 
 ## Store requirements
 
-A pluggable store must provide ACID transactions across `messages`, `transitions` and `outbox`; compare-and-set per row; and row locks with skip. A database without all three cannot be a store. The analytics database is separate and has no such requirements.
+A pluggable store must provide ACID transactions across `messages`, `transitions`, `outbox` and `enrichments`; compare-and-set per row; and row locks with skip. A database without all three cannot be a store. The analytics database is separate and has no such requirements.
 
 ## Consistency guarantees
 

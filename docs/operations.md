@@ -32,8 +32,9 @@ Batch actions take a filter (consumer, grouping key, time window) and a rate lim
 When a consumer sends a message to the DLQ, it usually also writes an error log with correlation IDs: trace ID, span ID, message ID, request ID. That log has context the DLQ does not: stack trace, consumer state, calls made before the failure.
 
 - The Collector extracts correlation IDs from headers and stores them.
-- The Enricher fetches the matching logs through a **log provider** plugin: Elasticsearch/OpenSearch, Loki, CloudWatch Logs, Datadog Logs. It works on a sample of each group, on every alert subject, and on any message an operator opens.
-- Enrichment is asynchronous and never blocks ingestion. Alerts wait for it, within a bounded time.
+- The Enricher fetches the matching logs through a **log provider** plugin (Elasticsearch/OpenSearch, Loki, CloudWatch Logs, Datadog Logs) before the message is classified. It reuses a recent result for the same group instead of querying again.
+- Enrichment never blocks ingestion and never holds a message: on failure or timeout the message moves on as `unavailable`.
+- An operator can ask for a message to be enriched again.
 - OpenDLQ stores a link to the query and a short snippet. It does not copy logs.
 
 The full behavior, statuses and configuration are in [enrichment](enrichment.md).

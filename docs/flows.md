@@ -5,14 +5,15 @@ How a message moves through OpenDLQ in each situation. Every arrow into the stat
 | Flow | Starts with | Ends with |
 | --- | --- | --- |
 | [1. Ingestion](#1-ingestion) | A message lands in the DLQ | `received` |
-| [2. Classification](#2-classification) | `received` | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
-| [3. Transient recovery](#3-transient-recovery) | `retrying` | `recovered`, or back to `received` |
-| [4. Dependency outage](#4-dependency-outage) | Many failures on one dependency | Backlog drained |
-| [5. Permanent failure and alert](#5-permanent-failure-and-alert) | `awaiting_operator` | Enriched alert sent |
-| [6. Runbook](#6-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded` or `awaiting_operator` |
-| [7. Operator action](#7-operator-action) | An operator command | `replaying`, `retrying` or `discarded` |
-| [8. Expiry and purge](#8-expiry-and-purge) | TTL or retention reached | `expired`, payload archived |
-| [9. Configuration change](#9-configuration-change) | A YAML change | Resources applied |
+| [2. Enrichment](#2-enrichment) | `received` | `enriched` |
+| [3. Classification](#3-classification) | `enriched` | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
+| [4. Transient recovery](#4-transient-recovery) | `retrying` | `recovered`, or back to `received` |
+| [5. Dependency outage](#5-dependency-outage) | Many failures on one dependency | Backlog drained |
+| [6. Permanent failure and alert](#6-permanent-failure-and-alert) | `awaiting_operator` | Alert sent, with logs |
+| [7. Runbook](#7-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded` or `awaiting_operator` |
+| [8. Operator action](#8-operator-action) | An operator command | `replaying`, `retrying` or `discarded` |
+| [9. Expiry and purge](#9-expiry-and-purge) | TTL or retention reached | `expired`, payload archived |
+| [10. Configuration change](#10-configuration-change) | A YAML change | Resources applied |
 
 ## 1. Ingestion
 
@@ -29,19 +30,44 @@ sequenceDiagram
         C->>S: insert, state = received
     end
     C->>DLQ: commit offset
-    S-->>S: NOTIFY policy
+    S-->>S: NOTIFY enricher
 ```
 
 - The offset is committed only after the transaction commits. A crash in between re-delivers the message; the unique constraint on `(topic, partition, offset)` makes the second insert a no-op.
-- The Collector calls no external service. Nothing outside the broker and the store can stop ingestion.
+- The Collector computes `group_key` from headers. It calls no external service, so nothing outside the broker and the store can stop ingestion.
 
-## 2. Classification
+## 2. Enrichment
+
+```mermaid
+sequenceDiagram
+    participant S as State store
+    participant E as Enricher
+    participant LP as Log provider
+    S->>E: next received message (SKIP LOCKED)
+    alt no sources configured
+        E->>S: state = enriched (skipped)
+    else recent result for the same group_key
+        E->>S: link result, state = enriched (reused)
+    else
+        E->>LP: query by correlation IDs
+        LP-->>E: logs, nothing, or error
+        E->>E: retry within timeout
+        E->>S: enrichments row + state = enriched
+    end
+    S-->>S: NOTIFY policy
+```
+
+- The `enrichments` row and the state change are one transaction. The Policy Engine never sees `enriched` without the data.
+- A source that fails or times out produces `unavailable`, not a stuck message.
+- See [enrichment](enrichment.md).
+
+## 3. Classification
 
 ```mermaid
 sequenceDiagram
     participant S as State store
     participant P as Policy Engine
-    S->>P: next received message (SKIP LOCKED)
+    S->>P: next enriched message (SKIP LOCKED)
     P->>P: attempts >= policy max?
     P->>P: matching runbook?
     P->>P: classify: header, rule, inference
@@ -57,7 +83,7 @@ Precedence:
 4. Transient → `retrying`, with `next_retry_at` from the backoff.
 5. Permanent → `awaiting_operator`.
 
-## 3. Transient recovery
+## 4. Transient recovery
 
 ```mermaid
 sequenceDiagram
@@ -82,9 +108,9 @@ sequenceDiagram
 ```
 
 - In `silence` mode, the Transient Runner marks the message `recovered` when it does not come back within the configured window.
-- A message that comes back goes through classification again. Exhaustion is checked there.
+- A message that comes back goes through enrichment and classification again. Enrichment usually reuses the group's result. Exhaustion is checked in classification.
 
-## 4. Dependency outage
+## 5. Dependency outage
 
 ```mermaid
 sequenceDiagram
@@ -106,37 +132,27 @@ sequenceDiagram
 - The drain releases messages in arrival order, at `drain.rate`, and keeps partition-key order.
 - Opening and closing the circuit are events. The Alerts Watcher can alert on them.
 
-## 5. Permanent failure and alert
+## 6. Permanent failure and alert
 
 ```mermaid
 sequenceDiagram
     participant S as State store
-    participant PH as Poison Runner
-    participant E as Enricher
-    participant LP as Log provider
+    participant PR as Poison Runner
     participant AW as Alerts Watcher
     participant N as Notifier
-    S->>PH: awaiting_operator, not announced
-    PH->>S: update group, notified_at, event poisoned
-    PH->>S: sampled? enrichment = pending
+    S->>PR: awaiting_operator, not announced
+    PR->>S: update group, notified_at, event poisoned
     S->>AW: event poisoned
-    AW->>S: alert instance, state = pending_enrichment
-    S->>E: enrichment pending
-    E->>E: wait delay (indexing)
-    E->>LP: query by correlation IDs
-    LP-->>E: logs (or retry, or fail)
-    E->>S: enrichment = enriched / not_found / unavailable
-    S->>AW: enrichment final
+    AW->>S: alert instance, state = pending
+    AW->>S: read group, sample, enrichment result
     AW->>N: alert with group, sample, logs, links, runbook
     AW->>S: alert instance = sent
 ```
 
-- With `mode: required`, the alert waits for a final enrichment status. `unavailable` is final, so a logging outage delays the alert but never silences it.
-- With `mode: wait`, the alert is sent at `max_wait` with what exists, then followed up.
-- With `mode: best_effort`, the alert is sent at once, then followed up.
-- See [enrichment](enrichment.md).
+- The message was enriched before it was classified, so the alert has logs, or the reason they are missing, with no extra wait.
+- `dedupe` keeps the same alert for the same group from repeating.
 
-## 6. Runbook
+## 7. Runbook
 
 ```mermaid
 sequenceDiagram
@@ -164,7 +180,7 @@ sequenceDiagram
 - An expired runbook never matches. The messages it covered go to `awaiting_operator` again.
 - Every step writes the runbook name and version to `transitions`.
 
-## 7. Operator action
+## 8. Operator action
 
 ```mermaid
 sequenceDiagram
@@ -182,7 +198,7 @@ sequenceDiagram
 - Edit-and-replay stores the new payload with the decision. The original payload stays in history.
 - Reclassifying permanent as transient moves the messages to `retrying`. It is the only path back to automatic retries.
 
-## 8. Expiry and purge
+## 9. Expiry and purge
 
 ```mermaid
 sequenceDiagram
@@ -196,7 +212,7 @@ sequenceDiagram
     Pu->>S: delete payload, keep record and transitions
 ```
 
-## 9. Configuration change
+## 10. Configuration change
 
 ```mermaid
 sequenceDiagram
