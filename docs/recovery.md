@@ -1,6 +1,6 @@
 # Recovery
 
-OpenDLQ recovers transient failures without human involvement. Four mechanisms work together. All of them are set per consumer in a `Policy` resource.
+OpenDLQ recovers transient failures without human involvement. Four mechanisms work together. All of them are set per consumer in a `Policy` resource. The full field reference is in [configuration](configuration.md#policy).
 
 ```yaml
 kind: Policy
@@ -8,8 +8,10 @@ metadata:
   name: order-events-default
   consumer: order-events
 spec:
-  retry:   { max: 5, base: 30s, factor: 2, cap: 30m, jitter: 0.2 }
-  breaker: { window: 60s, threshold: 20, canary_every: 30s, canary_cap: 5m, drain_rate: 50 }
+  retry:    { max: 5, base: 30s, factor: 2, cap: 30m, jitter: 0.2 }
+  breaker:  { window: 60s, threshold: 20 }
+  probe:    { type: canary, every: 30s, cap: 5m }
+  drain:    { rate: 50 }
   recovery: { mode: ack, topic: opendlq.ack, timeout: 10s }
   ttl: 72h
 ```
