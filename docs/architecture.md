@@ -132,7 +132,7 @@ stateDiagram-v2
 | `failure_kind` | enum | `transient`, `permanent`, `unknown` |
 | `failure_reason`, `failure_dependency` | string | Short error and dependency involved |
 | `group_key` | string | Grouping key by root cause |
-| `classified_by` | enum | `header`, `rule`, `inference`, `operator` |
+| `classified_by` | enum | `header`, `rule`, `group`, `logs`, `inference`, `operator` |
 | `state`, `version` | enum, int | Current state and version for compare-and-set |
 | `attempts` | list | Each attempt: when, result, error |
 | `next_retry_at` | timestamp | Next scheduled retry |

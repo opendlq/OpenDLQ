@@ -135,6 +135,11 @@ metadata:
 spec:
   transient: [timeout, 5xx, 429, connection_refused, deadlock]
   permanent: [4xx, parse_error, validation, nil_dereference]
+  rules:
+    - when: 'enrichment.error_class == "PoolExhaustedException"'
+      kind: transient
+      dependency: orders-db
+  group_memory: 24h
   inference: { same_message_failures: 3 }
   plugin: none
 ```
@@ -142,6 +147,8 @@ spec:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `transient`, `permanent` | Built-in lists | Error types per kind. See [classification](classification.md) |
+| `rules` | none | CEL rules over headers, error and enrichment fields, each with a `kind` and an optional `dependency` |
+| `group_memory` | `24h` | How long a group's classification applies to new messages of the same `group_key` |
 | `inference.same_message_failures` | `3` | Repeated failures with the same error that make a message permanent |
 | `plugin` | none | A classifier plugin replaces the rules |
 

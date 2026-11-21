@@ -15,28 +15,32 @@ Treating both kinds the same way causes one of two errors. Retrying everything l
 
 ## How a message is classified
 
-The classifier checks three signals in order and stops at the first one that answers.
+Classification happens in the Policy Engine, after [enrichment](enrichment.md). By then the store holds the headers, the message history and the enrichment result. The classifier checks five signals in order and stops at the first one that answers:
 
 1. **Consumer header.** The consumer publishes to the DLQ with the headers of the [header contract](#header-contract). This is the recommended path. It is the cheapest and most precise signal.
-2. **Rule by error type.** Rules in configuration map an exception or status to a kind. Defaults: 5xx, timeout, `connection refused`, `ECONNRESET`, 429 and deadlock are transient; validation 4xx, parse or serialization errors, constraint violations and `nil dereference` are permanent. Rules are per consumer and override the defaults.
-3. **Inference from behavior.** With no header and no rule, the message starts as transient. OpenDLQ then watches two patterns:
+2. **Rule.** Rules in configuration map an error to a kind. A rule can read headers, the error, and the fields the Enricher extracted from the logs, such as `enrichment.error_class`. Defaults: 5xx, timeout, `connection refused`, `ECONNRESET`, 429 and deadlock are transient; validation 4xx, parse or serialization errors, constraint violations and `nil dereference` are permanent.
+3. **Group memory.** If the message's `group_key` was already classified (by a rule on logs, by inference, or by an operator) within the memory window, the message gets the same kind. One decision covers a thousand identical messages.
+4. **Error class from the logs.** If the enrichment result carries an exception class that no rule covers, a built-in table maps common classes to a kind: `SocketTimeoutException` or `ConnectException` are transient; `JsonParseException` or `NullPointerException` are permanent. Rules override the table.
+5. **Inference from behavior.** With nothing above, the message starts as transient. OpenDLQ then watches two patterns:
     - **The same message fails N times with the same error.** The message is the problem. It is treated as permanent.
     - **Many different messages fail in the same window with the same error or dependency.** The dependency is the problem, not the messages. The circuit breaker for that dependency opens and the messages are held until a probe passes. See [recovery](recovery.md).
 
-The second pattern detects an unavailable dependency without an external health check.
+The last pattern detects an unavailable dependency without an external health check.
+
+Every decision records which signal answered (`classified_by`: `header`, `rule`, `group`, `logs`, `inference` or `operator`), so the analytics can show which signals do the work.
 
 ## Classification is never final
 
-An operator can reclassify any message. The reclassification is recorded and can feed the consumer's rules. Reclassifying a permanent message as transient is the only way it goes back to retrying.
+An operator can reclassify a message or a whole group. The reclassification is recorded, becomes the group's memory, and can feed the consumer's rules. Reclassifying a permanent message as transient is the only way it goes back to retrying.
 
 ## Classification is a plugin
 
 The core defines the interface:
 
-- **Input:** message, headers, error.
+- **Input:** message, headers, error, enrichment result, message history.
 - **Output:** kind (`transient` or `permanent`), dependency, grouping key.
 
-The three signals above are the default classifier. A team replaces it with its own plugin when its domain needs it, for example when a field in the payload identifies the cause. Nothing else in the system changes.
+The signals above are the default classifier. A team replaces it with its own plugin when its domain needs it, for example when a field in the payload identifies the cause. Nothing else in the system changes.
 
 ## Header contract
 
