@@ -57,9 +57,11 @@ OpenDLQ therefore makes classification the first step, not a manual step afterwa
 | Runbooks | [runbooks.md](../runbooks.md) |
 | Funnel, cost, recurrence, export | [analytics.md](../analytics.md) |
 | Alerts | [alerts.md](../alerts.md) |
-| Declarative configuration | [configuration.md](../configuration.md) |
+| Enrichment | [enrichment.md](../enrichment.md) |
+| Runtime and resource configuration | [configuration.md](../configuration.md) |
 | Operator actions, correlated logs, purge | [operations.md](../operations.md) |
 | Controllers, state machine, plugins, consistency | [architecture.md](../architecture.md) |
+| Flows | [flows.md](../flows.md) |
 | Use cases | [use-cases.md](../use-cases.md) |
 | V0 scope, milestones, open questions | [roadmap.md](../roadmap.md) |
 

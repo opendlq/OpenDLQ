@@ -76,9 +76,11 @@ The reasoning behind each principle is in [docs/principles.md](docs/principles.m
 | [Runbooks](docs/runbooks.md) | Automating known permanent failures, with guardrails |
 | [Analytics](docs/analytics.md) | Resolution funnel, cost, recurrence, OpenTelemetry export |
 | [Alerts](docs/alerts.md) | Declared alerts with context, for two audiences |
-| [Configuration](docs/configuration.md) | Declarative resources, `diff`, `apply`, drift |
+| [Enrichment](docs/enrichment.md) | Correlated logs, and how alerts wait for them |
+| [Configuration](docs/configuration.md) | Runtime settings and full resource reference |
 | [Operations](docs/operations.md) | Operator actions, correlated logs, audit, purge |
 | [Architecture](docs/architecture.md) | Controllers, state machine, plugins, consistency |
+| [Flows](docs/flows.md) | Step-by-step sequence for each situation |
 | [Use cases](docs/use-cases.md) | How the mix of failures changes by scenario |
 | [Roadmap](docs/roadmap.md) | V0 scope, milestones, non-goals, open questions |
 | [RFC 0001](docs/rfc/0001-opendlq.md) | Why OpenDLQ exists and the alternatives considered |
