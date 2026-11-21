@@ -12,7 +12,6 @@ spec:
   severity: page
   audience: operational
   notify: [pagerduty-oncall]
-  enrichment: { mode: wait, max_wait: 30s }
 ---
 kind: Alert
 metadata:
@@ -57,20 +56,12 @@ An alert that fires with no context starts the investigation from zero. Every no
 - Links: the group in OpenDLQ, the logs, the trace.
 - The matching runbook, if one exists.
 
-## Alerts wait for enrichment
+## Alerts carry enrichment
 
-By default an alert is not sent while its enrichment is still `pending`. Each alert chooses how long to wait:
-
-| `enrichment.mode` | Behavior |
-| --- | --- |
-| `required` (default) | Wait until enrichment reaches a final status: `enriched`, `not_found` or `unavailable` |
-| `wait` | Wait up to `max_wait`, then send with what exists |
-| `best_effort` | Send immediately |
-
-When enrichment finishes after the alert was sent, the Alerts Watcher sends a follow-up. A logging outage delays alerts by a bounded time but never silences them. See [enrichment](enrichment.md).
+Every message is enriched before it is classified, so an alert about a message always has a final enrichment status when it fires. There is nothing to wait for. When logs are missing, the alert says why: no matching logs, or the source was unavailable. See [enrichment](enrichment.md).
 
 ## Who sends notifications
 
-Only the Alerts Watcher. The other components emit events and never notify directly. Each alert is an alert instance in the state store (`pending_enrichment`, `sent`, `followed_up`), so a restart never loses or repeats a notification. This keeps every alert rule in one place, declared and reviewed.
+Only the Alerts Watcher. The other components emit events and never notify directly. Each alert is an alert instance in the state store (`pending`, `sent`), so a restart never loses or repeats a notification. This keeps every alert rule in one place, declared and reviewed.
 
 Notification channels are plugins: Slack, PagerDuty, Opsgenie, webhook. `dedupe` keeps the same alert for the same group from repeating within a window.

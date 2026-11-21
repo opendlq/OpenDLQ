@@ -76,7 +76,7 @@ The reasoning behind each principle is in [docs/principles.md](docs/principles.m
 | [Runbooks](docs/runbooks.md) | Automating known permanent failures, with guardrails |
 | [Analytics](docs/analytics.md) | Resolution funnel, cost, recurrence, OpenTelemetry export |
 | [Alerts](docs/alerts.md) | Declared alerts with context, for two audiences |
-| [Enrichment](docs/enrichment.md) | Correlated logs, and how alerts wait for them |
+| [Enrichment](docs/enrichment.md) | Correlated logs, fetched before classification |
 | [Configuration](docs/configuration.md) | Runtime settings and full resource reference |
 | [Operations](docs/operations.md) | Operator actions, correlated logs, audit, purge |
 | [Architecture](docs/architecture.md) | Controllers, state machine, plugins, consistency |
