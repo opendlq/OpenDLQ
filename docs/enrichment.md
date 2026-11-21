@@ -1,64 +1,62 @@
 # Enrichment
 
-Enrichment adds context that the DLQ does not have: the application logs and the trace of the failure. An alert or a group page without that context starts the investigation from zero, so OpenDLQ treats enrichment as part of the alert path, not as an extra.
+Enrichment adds the context the DLQ does not have: the application logs and the trace of the failure. Every message is enriched before it is classified, so the Policy Engine decides with that context, and every alert about a message already carries it.
 
-Enrichment never runs inside the Collector. Ingestion must not depend on the logging backend: if that backend is slow or down, messages are still stored and classified.
+## Where it sits
 
-## What gets enriched
+```
+received → [Enricher] → enriched → [Policy Engine] → ...
+```
 
-When a consumer sends a message to the DLQ, it usually also writes an error log with correlation IDs: trace ID, span ID, message ID, request ID. The Collector extracts those IDs from the headers and stores them. The Enricher uses them to fetch the matching logs.
+- The **Enricher** owns `received`. It queries the sources configured for the consumer, stores the result and moves the message to `enriched`.
+- The **Policy Engine** owns `enriched`. When it classifies, headers, history and logs are all in the store.
+- A consumer with no sources configured passes straight through: the Enricher moves the message to `enriched` without querying anything.
 
-Enriching every message would be expensive and rarely useful: a thousand messages with the same cause have the same story. The Enricher works on a sample:
+The Collector never queries external systems. Ingestion does not depend on the logging backend.
 
-- The first `sample_per_group` messages of every new group (default 3).
-- Any message that is the subject of an alert.
-- Any message an operator opens, on demand.
+## Enrichment never blocks
 
-## Enrichment status
-
-Every message has an enrichment status:
+If a source fails or takes too long, the message still moves to `enriched`, with the status `unavailable`. The Policy Engine then classifies without logs. A logging outage makes classification less informed, never stuck.
 
 | Status | Meaning |
 | --- | --- |
-| `skipped` | Not sampled, or no correlation IDs. No lookup will happen |
-| `pending` | Waiting for the first lookup or for a retry |
-| `enriched` | Logs found. A link and a short snippet are stored |
-| `not_found` | Lookups finished; no matching logs |
-| `unavailable` | The log provider failed on every retry |
+| `enriched` | Logs found. Extracted fields, a snippet and a link are stored |
+| `reused` | A recent result for the same group was reused. No query was made |
+| `not_found` | Queries finished with no matching logs |
+| `unavailable` | The source failed or timed out on every attempt |
+| `skipped` | No sources configured, or no correlation IDs to query with |
 
-`enriched`, `not_found` and `unavailable` are final. The time to reach a final status is bounded:
+The time a message can spend in `received` is bounded by `timeout × (retries + 1)` plus backoff. With a healthy log backend it is a few seconds: the consumer usually writes its error log before it publishes to the DLQ, and log pipelines make logs searchable within seconds.
 
-```
-max time = delay + retries × (timeout + backoff)
-```
+## Reuse by group
 
-With the defaults (15 s delay, 3 retries, 10 s timeout, 5 s backoff) that is at most 60 s.
+A thousand messages with the same error tell the same story, and log APIs charge per query and limit the request rate. The Enricher reuses results:
 
-## Indexing delay
+- Every message has a `group_key`, computed by the Collector from headers (by default `x-failure-reason`).
+- If a message with the same `group_key` was enriched within `reuse_window`, the Enricher links to that result and marks the message `reused`. No query is made.
+- The first message of a new group always pays for a query.
 
-A log is often not searchable yet when the message reaches the DLQ. The Enricher waits `delay` after the failure timestamp before the first lookup. A lookup with no result before the last retry counts as "not indexed yet", not as `not_found`.
+## What is stored
 
-## Alerts wait for enrichment
+Results go to an `enrichments` table, separate from `messages`, written in the same transaction as the state change. The Policy Engine never sees `enriched` without the data.
 
-Each `Alert` declares how it relates to enrichment:
-
-| Mode | Behavior | Use for |
+| Column | Type | Holds |
 | --- | --- | --- |
-| `required` (default) | The alert waits until enrichment reaches a final status. It is never sent while enrichment is `pending`. | Most alerts |
-| `wait` | The alert waits up to `max_wait`, then is sent with whatever exists. | Pages where seconds matter |
-| `best_effort` | The alert is sent immediately. | Low-value or very high-volume alerts |
+| `id` | UUID | Identity of the result |
+| `group_key` | string | The group the result belongs to, for reuse |
+| `source` | string | The `Provider` that answered |
+| `status` | enum | See above |
+| `data` | JSONB | Extracted fields: service, error class, top of the stack trace, trace ID, plus a short snippet |
+| `link` | string | Deep link to the logs (Grafana, Kibana, Datadog) |
+| `fetched_at` | timestamp | When the query ran |
 
-In every mode, when enrichment finishes after the alert was sent, the Alerts Watcher sends a follow-up (a thread reply or an update, if the notifier supports it).
+Messages reference the result by `enrichment_id`.
 
-### Why there is no "never send without logs" mode
+`data` is bounded in size (default 16 KB). It is an extract, not a copy: the full logs stay in the log backend, which is the right place to search them. Strong consistency applies to the state and the reference between message and result. The content is a copy of external data and does not need to be fresher than a few seconds.
 
-If an alert waited until logs were found, a logging backend outage would silence every alert, exactly when the system is most likely to be failing. `required` waits for a final status, and `unavailable` is a final status. The alert is then sent and says so: "logs unavailable: provider `loki-prod` failed 3 lookups".
+## Sources
 
-The wait is bounded by the formula above, so `required` delays an alert by at most about a minute with the defaults.
-
-## Configuration
-
-Enrichment is configured per consumer:
+Each consumer lists one or more sources. Each source is a `Provider` (see [configuration](configuration.md#provider)) and an extraction:
 
 ```yaml
 kind: Consumer
@@ -67,30 +65,24 @@ metadata:
 spec:
   correlation_headers: [traceparent, x-request-id]
   enrichment:
-    provider: loki-prod        # a Provider resource
-    sample_per_group: 3
-    delay: 15s
-    timeout: 10s
-    retries: 3
-    backoff: 5s
+    sources:
+      - provider: loki-prod
+        extract:
+          service: 'log.labels.service'
+          error_class: 'log.json.error.type'
+          stack_top: 'log.json.error.stack[0]'
+    timeout: 3s
+    retries: 2
+    backoff: 1s
+    reuse_window: 10m
 ```
 
-Alert gating is configured per alert:
+`extract` maps JSON paths in the log to fields in `data`. The Policy Engine and classifier rules can read those fields. See [classification](classification.md).
 
-```yaml
-kind: Alert
-metadata:
-  name: order-events-new-group
-  consumer: order-events
-spec:
-  when: event == "poisoned" and group.is_new
-  severity: page
-  notify: [pagerduty-oncall]
-  enrichment: { mode: required }
-```
+## On demand
 
-The log provider itself is a `Provider` resource. See [configuration](configuration.md#provider).
+An operator can ask for a message to be enriched again, for example after the log backend recovers. The new result replaces the reference and is recorded in the audit log. It never changes a decision already taken.
 
 ## Deep links without an API
 
-When the logging backend has no API access, OpenDLQ still builds a link from a URL template (Grafana Explore, Kibana Discover, Datadog Log Explorer). The status is then `skipped`, and alerts carry the link without a snippet.
+When the log backend has no API access, OpenDLQ still builds a link from the provider's `link_template` (Grafana Explore, Kibana Discover, Datadog Log Explorer). The status is `skipped` and the message carries the link without a snippet.

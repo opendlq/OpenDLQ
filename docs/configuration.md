@@ -33,11 +33,11 @@ Every resource is a YAML document with `kind`, `metadata` and `spec`, in the sty
 | Kind | Declares | Scope |
 | --- | --- | --- |
 | [`Provider`](#provider) | A connection to an external system: log backend, notification channel, archive | Global |
-| [`Consumer`](#consumer) | A DLQ to watch, where replays go, how to decode, how to enrich | One consumer |
+| [`Consumer`](#consumer) | A DLQ to watch, where replays go, how to decode, how to group and enrich | One consumer |
 | [`Policy`](#policy) | Retry, circuit breaker, probe, recovery detection, TTL, retention | Default or one consumer |
 | [`Classifier`](#classifier) | Classification rules or plugin | Default or one consumer |
 | [`Runbook`](#runbook) | The handling of a known permanent failure | One consumer or global |
-| [`Alert`](#alert) | A condition, its audience and how it waits for enrichment | One consumer or global |
+| [`Alert`](#alert) | A condition and its audience | One consumer or global |
 
 ### Defaults and overrides
 
@@ -72,14 +72,17 @@ spec:
   source:    { plugin: kafka, topic: order-events.dlq, group: opendlq }
   replay_to: { plugin: kafka, topic: order-events }
   serde: json
+  group_key: 'headers["x-failure-reason"]'
   correlation_headers: [traceparent, x-request-id]
   enrichment:
-    provider: loki-prod
-    sample_per_group: 3
-    delay: 15s
-    timeout: 10s
-    retries: 3
-    backoff: 5s
+    sources:
+      - provider: loki-prod
+        extract:
+          error_class: 'log.json.error.type'
+    timeout: 3s
+    retries: 2
+    backoff: 1s
+    reuse_window: 10m
 ```
 
 | Field | Default | Meaning |
@@ -88,10 +91,10 @@ spec:
 | `replay_to` | Original topic from headers | Where replays go |
 | `serde` | `json` | How to decode and encode payloads |
 | `correlation_headers` | `[traceparent]` | Headers to extract for enrichment and tracing |
-| `enrichment.provider` | none | Log provider. Without one, enrichment is `skipped` |
-| `enrichment.sample_per_group` | `3` | Messages enriched per new group |
-| `enrichment.delay` | `15s` | Wait before the first lookup, for indexing |
-| `enrichment.timeout`, `retries`, `backoff` | `10s`, `3`, `5s` | Bound the time to a final status. See [enrichment](enrichment.md) |
+| `enrichment.sources` | none | Providers to query, each with an `extract` map of JSON paths. Without sources, enrichment is `skipped` |
+| `enrichment.timeout`, `retries`, `backoff` | `3s`, `2`, `1s` | Bound the time a message waits before classification. See [enrichment](enrichment.md) |
+| `enrichment.reuse_window` | `10m` | Reuse a recent result for the same `group_key` instead of querying again |
+| `group_key` | `headers["x-failure-reason"]` | CEL expression the Collector uses to group messages |
 
 ### Policy
 
@@ -132,7 +135,6 @@ metadata:
 spec:
   transient: [timeout, 5xx, 429, connection_refused, deadlock]
   permanent: [4xx, parse_error, validation, nil_dereference]
-  group_key: 'headers["x-failure-reason"]'
   inference: { same_message_failures: 3 }
   plugin: none
 ```
@@ -140,7 +142,6 @@ spec:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `transient`, `permanent` | Built-in lists | Error types per kind. See [classification](classification.md) |
-| `group_key` | `x-failure-reason` | CEL expression for the grouping key |
 | `inference.same_message_failures` | `3` | Repeated failures with the same error that make a message permanent |
 | `plugin` | none | A classifier plugin replaces the rules |
 
@@ -160,7 +161,6 @@ spec:
   severity: page
   audience: operational
   notify: [pagerduty-oncall]
-  enrichment: { mode: required }
   dedupe: 30m
 ```
 
@@ -170,7 +170,6 @@ spec:
 | `severity` | `report` | `page` or `report` |
 | `audience` | `operational` | `operational` or `decision` |
 | `notify` | — | One or more notifier `Provider` names |
-| `enrichment.mode` | `required` | `required`, `wait` (with `max_wait`) or `best_effort`. See [enrichment](enrichment.md) |
 | `schedule` | none | Send as a digest (`daily`, `weekly`) instead of per event |
 | `dedupe` | `30m` | Window in which the same alert for the same group is not repeated |
 
