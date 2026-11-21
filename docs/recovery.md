@@ -1,7 +1,5 @@
 # Recovery
 
-[Português](recovery.pt-BR.md)
-
 OpenDLQ recovers transient failures without human involvement. Four mechanisms work together. All of them are set per consumer in a `Policy` resource.
 
 ```yaml

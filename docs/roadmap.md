@@ -1,7 +1,5 @@
 # Roadmap
 
-[Português](roadmap.pt-BR.md)
-
 ## V0
 
 V0 is done when the demo below runs end to end with no manual step in between.

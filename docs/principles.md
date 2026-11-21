@@ -1,7 +1,5 @@
 # Design principles
 
-[Português](principles.pt-BR.md)
-
 These principles decide trade-offs. When two designs both work, pick the one that keeps them.
 
 ## 1. Never lose a message. Never apply a decision twice.

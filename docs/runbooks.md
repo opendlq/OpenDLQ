@@ -1,7 +1,5 @@
 # Runbooks
 
-[Português](runbooks.pt-BR.md)
-
 A runbook tells OpenDLQ what to do with a known permanent failure. The operator writes it. OpenDLQ executes it, within limits.
 
 Without a runbook, a permanent failure always waits for a human. A runbook lets the operator make that decision in advance.

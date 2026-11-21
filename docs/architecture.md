@@ -1,7 +1,5 @@
 # Architecture
 
-[Português](architecture.pt-BR.md)
-
 OpenDLQ follows the controller pattern used by Kubernetes. A single state store holds the state of every message and is the source of truth. Each component is a controller: it watches the messages in the state it owns, acts, and writes the new state. Components never call each other.
 
 ```mermaid

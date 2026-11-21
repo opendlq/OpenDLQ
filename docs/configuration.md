@@ -1,7 +1,5 @@
 # Configuration
 
-[Português](configuration.pt-BR.md)
-
 All OpenDLQ configuration is a set of declarative resources, in the style of Kubernetes: one YAML document per resource, with `kind`, `metadata` and `spec`.
 
 ## Resources

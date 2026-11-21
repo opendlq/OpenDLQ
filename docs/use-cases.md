@@ -1,7 +1,5 @@
 # Use cases
 
-[Português](use-cases.pt-BR.md)
-
 The core is the same in every case. What changes is the mix of transient and permanent failures, and so which half of OpenDLQ does most of the work.
 
 | Case | Estimated mix | What fails | What matters most |

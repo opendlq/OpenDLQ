@@ -1,7 +1,5 @@
 # Analytics
 
-[Português](analytics.pt-BR.md)
-
 OpenDLQ measures what happens to failed messages, so the engineering team can see what to fix. Analytics read only the state store and the audit log. No metric depends on the content of a message.
 
 Analytics are eventually consistent, with a declared maximum lag. State, replay and audit are not.

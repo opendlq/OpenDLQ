@@ -1,7 +1,5 @@
 # Operations
 
-[Português](operations.pt-BR.md)
-
 What an operator can do with failed messages, and through which interfaces.
 
 ## Interfaces

@@ -1,7 +1,5 @@
 # Classification
 
-[Português](classification.pt-BR.md)
-
 Every message that reaches OpenDLQ gets one of two kinds. The kind decides what happens next.
 
 | | Transient | Permanent |

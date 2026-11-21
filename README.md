@@ -3,8 +3,6 @@
 **The open control plane for dead-letter queues.**
 Recover what can heal itself, explain what can't, and measure all of it.
 
-[Português](README.pt-BR.md)
-
 > **Status:** early design. The architecture is defined in [RFC 0001](docs/rfc/0001-opendlq.md). The first version targets Kafka and is not built yet. Everything below describes the intended design, not shipped features.
 
 ---

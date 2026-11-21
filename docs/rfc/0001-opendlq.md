@@ -1,7 +1,5 @@
 # RFC 0001: OpenDLQ
 
-[Português](0001-opendlq.pt-BR.md)
-
 - **Status:** Draft
 - **Author:** Yuri Costa
 - **Created:** 2026-10-27

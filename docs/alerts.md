@@ -1,7 +1,5 @@
 # Alerts
 
-[Português](alerts.pt-BR.md)
-
 Alerts are declared, not configured in a UI. Each alert is an `Alert` resource in the configuration repository.
 
 ```yaml
