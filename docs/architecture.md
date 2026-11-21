@@ -1,6 +1,6 @@
 # Architecture
 
-OpenDLQ follows the controller pattern used by Kubernetes. A single state store holds the state of every message and is the source of truth. Each component is a controller: it watches the messages in the state it owns, acts, and writes the new state. Components never call each other.
+OpenDLQ follows the controller pattern used by Kubernetes. A single state store holds the state of every message and is the source of truth. Each component is a controller: it watches the messages in the state it owns, acts, and writes the new state. Components never call each other. The step-by-step sequence for each situation is in [flows](flows.md).
 
 ```mermaid
 flowchart LR
@@ -42,12 +42,12 @@ flowchart LR
 | **Policy Engine** | `received` | Classifies. Checks exhaustion. Routes by precedence: matching runbook, then transient, then permanent. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
 | **Transient Runner** | `retrying` due; `held`; `replaying` | Schedules retries with backoff. Opens and closes circuit breakers. Runs probes. Confirms recovery. | `outbox`; `replaying`, `held`, `retrying`, `recovered` or `received` | Probe, Recovery Detector |
 | **Runbook Runner** | `runbook_matched` | Executes the runbook action within its guardrails. Records each step. | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `awaiting_operator` | Transformer, Runbook Action |
-| **Poison Handler** | `awaiting_operator` not yet announced | Updates the cause group. Emits an event. | `notified_at`; `poisoned` event | — |
-| **Enricher** | Messages with correlation IDs and no enrichment | Fetches logs by trace ID, with retry. Asynchronous: never blocks another controller. | Log link and snippet | Log Provider |
+| **Poison Handler** | `awaiting_operator` not yet announced | Updates the cause group. Marks sampled messages for enrichment. Emits an event. | `notified_at`; `enrichment = pending`; `poisoned` event | — |
+| **Enricher** | Messages with `enrichment = pending` | Waits for indexing, fetches logs by correlation IDs, retries. Asynchronous: never blocks another controller. | `enrichment` status, log link and snippet | Log Provider |
 | **Publisher** | Pending `outbox` rows | Serializes and publishes to the target. Marks the row as sent. | `outbox.sent_at` | Sink, Serde |
 | **Purger** | Expired messages; payloads past retention | Moves messages to `expired`. Archives and deletes payloads. Never deletes `transitions`. | `expired`; archived payload | Store |
 | **Analytics Engine** | `transitions` (CDC or rollup) | Computes funnel, cost, trends, recurrence. Exports OpenTelemetry and `/metrics`. Serves `/analytics`. | Rollups; analytic condition events | — |
-| **Alerts Watcher** | Events from `transitions` and Analytics | Evaluates declared `Alert` resources. The only component that notifies. | Alert record | Notifier |
+| **Alerts Watcher** | Events from `transitions` and Analytics; alert instances | Evaluates declared `Alert` resources. Waits for enrichment as each alert declares. The only component that notifies. | Alert instances: `pending_enrichment`, `sent`, `followed_up` | Notifier |
 
 The Collector never queries logs. If the logging backend is down, ingestion continues.
 
@@ -121,6 +121,8 @@ stateDiagram-v2
 | `runbook` | string | Name and version of the matching runbook |
 | `expires_at` | timestamp | TTL deadline |
 | `notified_at` | timestamp | When the Poison Handler announced it |
+| `enrichment` | enum | `skipped`, `pending`, `enriched`, `not_found`, `unavailable` |
+| `correlation` | map | Correlation IDs extracted from headers |
 
 The history of state changes and the audit trail live in `transitions`, not on the message.
 
