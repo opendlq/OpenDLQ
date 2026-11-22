@@ -73,6 +73,7 @@ The full index is in [docs/](docs/README.md). Good places to start:
 | --- | --- |
 | [Architecture](docs/architecture.md) | Controller model, components, deployment, consistency |
 | [Flows](docs/flows.md) | Step-by-step sequence for each situation |
+| [Specifications](specs/README.md) | Every path and problem of a message, in Gherkin |
 | [Header contract](docs/header-contract.md) | The only integration a consumer needs |
 | [Configuration](docs/configuration.md) | Runtime settings and resource reference |
 | [Roadmap](roadmap/README.md) | What each version ships. V0 scope, demo, milestones |

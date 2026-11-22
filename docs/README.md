@@ -13,6 +13,7 @@ Start with the principles and the architecture. Then read the page of each compo
 | [Architecture](architecture.md) | Controller model, components, deployment, consistency |
 | [State machine](state-machine.md) | States, owners, message record |
 | [Flows](flows.md) | Step-by-step sequence for each situation |
+| [Specifications](../specs/README.md) | Every path and problem of a message, in Gherkin. Executable later |
 
 ## Components
 
