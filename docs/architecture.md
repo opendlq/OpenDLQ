@@ -75,7 +75,7 @@ Runners never notify. They emit events (`exhausted`, `poisoned`, `runbook_step`)
 
 ## Store requirements
 
-A pluggable store must provide ACID transactions across `messages`, `transitions`, `outbox` and `enrichments`; compare-and-set per row; and row locks with skip. A database without all three cannot be a store. The analytics database is separate and has no such requirements.
+See [State Store](components/state-store.md#store-requirements).
 
 ## Consistency guarantees
 
@@ -83,7 +83,7 @@ A pluggable store must provide ACID transactions across `messages`, `transitions
 | --- | --- | --- |
 | Ingestion | No message lost; none duplicated in the store | Insert before offset commit; unique constraint on `(topic, partition, offset)` |
 | State changes | One decision per message at a time | `SKIP LOCKED` + compare-and-set on `version` |
-| Replay | One decision produces one send from OpenDLQ | Transactional outbox |
+| Replay | A replay exists only if its decision was committed. Published at least once, with the same `x-dlq-attempt` on every copy | Transactional outbox |
 | Audit | Every state change recorded | `transitions` in the same transaction |
 | Analytics | Eventual, with a declared maximum lag | CDC or periodic rollup |
 | Consumer | Not guaranteed by OpenDLQ | Idempotency key in the header; the consumer deduplicates |
