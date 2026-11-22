@@ -35,7 +35,7 @@ flowchart LR
     Sink --> Topic[(Original topic)]
     Store -->|CDC| Analytics[Analytics Engine]
     Store -. events .-> Alerts[Alerts Watcher]
-    Analytics --> Alerts
+    Analytics -. findings .-> Alerts
     Alerts --> Notifier
 ```
 

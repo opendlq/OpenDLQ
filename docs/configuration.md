@@ -173,7 +173,7 @@ spec:
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `when` | — | CEL expression over events, metrics and recurrence. See [alerts](components/alerts-watcher.md) |
+| `when` | — | CEL expression over events, metrics, recurrence and findings. See [alerts](components/alerts-watcher.md) |
 | `severity` | `report` | `page` or `report` |
 | `audience` | `operational` | `operational` or `decision` |
 | `notify` | — | One or more notifier `Provider` names |

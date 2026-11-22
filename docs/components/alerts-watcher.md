@@ -9,6 +9,18 @@ Turns events and findings into notifications. It is the only component that noti
 | Plugins | Notifier |
 | Scales | One active instance per alert, by claim on the alert instance |
 
+## Responsibility
+
+- Evaluate every `Alert` resource against three inputs: events in `transitions` (seconds after they commit), metrics (on each evaluation), and [findings](analytics-engine.md#findings) of the Analytics Engine (when they open or close).
+- Create one alert instance per alert and subject, with `dedupe` applied. Ten thousand messages in one group produce one instance.
+- Build the context of the notification. See [context in every notification](#context-in-every-notification).
+- Deliver through a Notifier, then mark the instance `sent`. Digests (`schedule`) collect instances and send them together.
+
+## Does not
+
+- Detect anomalies. The Analytics Engine does, and records findings.
+- Change the state of a message.
+
 ## Alerts
 
 Alerts are declared, not configured in a UI. Each alert is an `Alert` resource in the configuration repository. `notify` names notifier `Provider` resources. The full field reference is in [configuration](../configuration.md#alert).
@@ -33,6 +45,16 @@ spec:
   audience: decision
   notify: [slack-eng-priorities]
   schedule: weekly
+---
+kind: Alert
+metadata:
+  name: inflow-anomaly
+spec:
+  when: finding.detector == "rate" and finding.score >= 3
+  severity: report
+  audience: operational
+  notify: [slack-oncall]
+  dedupe: 2h
 ```
 
 ### Two audiences
@@ -48,13 +70,16 @@ An operational alert says "act now". A decision alert says "this keeps costing u
 
 ### Conditions
 
-An alert condition is an expression over events and metrics:
+An alert condition is a CEL expression over events, metrics and findings:
 
 | Source | Examples |
 | --- | --- |
 | Events | `exhausted`, `poisoned` (new message waiting for an operator), `circuit_opened`, `runbook_step`, `runbook_expiring` |
 | Metrics | `max_age`, `open_count`, `self_recovery_rate`, `time_to_triage` |
 | Recurrence | `recurrence.episodes`, `recurrence.cost_trend` |
+| Findings | `finding.detector`, `finding.subject`, `finding.score`, `finding.status` |
+
+Events and metrics come from the State Store and fire in seconds. Findings come from the Analytics Engine and carry its lag. Page on events and metrics. Use findings for trends.
 
 ### Context in every notification
 
@@ -73,6 +98,6 @@ Every message is enriched before it is classified, so an alert about a message a
 
 ### Who sends notifications
 
-Only the Alerts Watcher. The other components emit events and never notify directly. Each alert is an alert instance in the state store (`pending`, `sent`), so a restart never loses or repeats a notification. This keeps every alert rule in one place, declared and reviewed.
+Only the Alerts Watcher. Runners write transitions and the Analytics Engine writes findings. None of them notifies directly. Each alert is an alert instance in the state store (`pending`, `sent`), so a restart never loses or repeats a notification. This keeps every alert rule in one place, declared and reviewed.
 
 Notification channels are plugins: Slack, PagerDuty, Opsgenie, webhook. `dedupe` keeps the same alert for the same group from repeating within a window.
