@@ -71,7 +71,8 @@ The reasoning behind each principle is in [docs/principles.md](docs/principles.m
 | Topic | |
 | --- | --- |
 | [Principles](docs/principles.md) | The rules that decide trade-offs |
-| [Classification](docs/components/policy-engine.md) | Transient vs. permanent, and the header contract |
+| [Classification](docs/components/policy-engine.md) | Transient vs. permanent |
+| [Header contract](docs/header-contract.md) | The headers a consumer sends and receives |
 | [Recovery](docs/components/transient-runner.md) | Retry, circuit breaker, probe, controlled drain, idempotency |
 | [Runbooks](docs/components/runbook-runner.md) | Automating known permanent failures, with guardrails |
 | [Analytics](docs/components/analytics-engine.md) | Resolution funnel, cost, recurrence, OpenTelemetry export |

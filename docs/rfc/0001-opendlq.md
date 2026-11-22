@@ -52,7 +52,8 @@ OpenDLQ therefore makes classification the first step, not a manual step afterwa
 | Topic | Document |
 | --- | --- |
 | Principles | [principles.md](../principles.md) |
-| Classification and header contract | [classification.md](../components/policy-engine.md) |
+| Classification | [policy-engine.md](../components/policy-engine.md) |
+| Header contract | [header-contract.md](../header-contract.md) |
 | Retry, circuit breaker, probe, drain | [recovery.md](../components/transient-runner.md) |
 | Runbooks | [runbooks.md](../components/runbook-runner.md) |
 | Funnel, cost, recurrence, export | [analytics.md](../components/analytics-engine.md) |
