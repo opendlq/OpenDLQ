@@ -8,7 +8,8 @@ Start with the principles and the architecture. Then read the page of each compo
 
 | Page | Covers |
 | --- | --- |
-| [Principles](principles.md) | The rules that decide trade-offs |
+| [Principles](principles.md) | The positions that decide trade-offs |
+| [Guarantees](guarantees.md) | The invariants that never break |
 | [Architecture](architecture.md) | Controller model, components, deployment, consistency |
 | [State machine](state-machine.md) | States, owners, message record |
 | [Flows](flows.md) | Step-by-step sequence for each situation |

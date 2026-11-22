@@ -57,14 +57,13 @@ From there, it works on three fronts:
 
 ## Design principles
 
-1. **Never lose a message. Never apply a decision twice.**
-2. **Humans decide permanent failures.** Automation only runs what an operator declared.
+1. **Classify before acting.** Transient and permanent failures need opposite handling.
+2. **Humans decide permanent failures.** Automation runs only what an operator declared.
 3. **Declarative first.** If it is not in a file, it is drift.
-4. **Pluggable at the edges, fixed at the core.**
-5. **On top of your broker, never instead of it.**
-6. **One path for humans and agents.** No privileged API.
+4. **Beside your stack, not instead of it.** Your broker, your logs, your dashboards. Only Postgres is required.
+5. **Opinionated defaults.** Adaptable everywhere except the guarantees.
 
-The reasoning behind each principle is in [docs/principles.md](docs/principles.md).
+The reasoning is in [principles](docs/principles.md). The invariants that never break are in [guarantees](docs/guarantees.md).
 
 ## Documentation
 
