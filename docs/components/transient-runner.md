@@ -54,7 +54,7 @@ Only failures classified as transient count toward opening the breaker. Twenty m
 
 While the breaker is open, a probe checks whether the dependency is back. The probe is a plugin:
 
-- **Canary (default):** every 30 s, replay one held message, the oldest. The interval doubles on each failure, up to 5 min.
+- **Canary (default):** every 30 s, replay one held message, the oldest. If it is not acked, it returns to held, and the interval doubles, up to 5 min. A canary failure is not an attempt.
 - **Health check:** call an HTTP endpoint of the dependency. Useful when replaying a real message is not safe.
 
 When the probe passes, the breaker closes.

@@ -57,7 +57,7 @@ Classification happens in the Policy Engine, after [enrichment](enricher.md). By
 
 The last pattern detects an unavailable dependency without an external health check.
 
-Every decision records which signal answered (`classified_by`: `header`, `rule`, `group`, `logs`, `inference` or `operator`), so the analytics can show which signals do the work.
+Every decision records which signal answered (`classified_by`: `header`, `rule`, `group`, `logs`, `inference`, `operator`, or `plugin` when a team replaces the classifier), so the analytics can show which signals do the work.
 
 ### Classification is never final
 

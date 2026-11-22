@@ -53,6 +53,7 @@ ready → awaiting_operator   permanent with no runbook, or attempts exhausted
 ```
 retrying → replaying   next_retry_at reached. Writes the outbox.
 retrying → held        the circuit opened
+held     → replaying   the oldest held message is sent as the canary. Writes the outbox.
 held     → retrying    the probe passed. Drain at the declared rate.
 ```
 
@@ -63,6 +64,7 @@ runbook_matched → awaiting_approval   the guardrail requires approval
 runbook_matched → replaying           replay, or transform and replay. Writes the outbox.
 runbook_matched → routed              route
 runbook_matched → discarded           discard
+runbook_matched → awaiting_operator   quiet, or notify
 runbook_matched → ready               the action failed. Path recorded as failed.
 ```
 
@@ -71,6 +73,7 @@ runbook_matched → ready               the action failed. Path recorded as fail
 ```
 replaying → recovered   ack for the current attempt, or the silence window passed
 replaying → ready       no ack before the timeout. Attempt recorded as failed.
+replaying → held        the canary was not acked. The circuit stays open. Not an attempt.
 ```
 
 ### Events
@@ -99,18 +102,21 @@ stateDiagram-v2
     retrying --> replaying: due
     retrying --> held: circuit opens
     held --> retrying: probe passes
+    held --> replaying: canary
     runbook_matched --> awaiting_approval: approval
     awaiting_approval --> runbook_matched: approved
     awaiting_approval --> ready: rejected
     runbook_matched --> replaying: replay
     runbook_matched --> routed
     runbook_matched --> discarded
+    runbook_matched --> awaiting_operator: quiet or notify
     runbook_matched --> ready: action fails
     awaiting_operator --> replaying: replay
     awaiting_operator --> ready: reclassify
     awaiting_operator --> discarded: discard
     replaying --> recovered: confirmed
     replaying --> ready: ack timeout
+    replaying --> held: canary fails
     replaying --> received: back in the DLQ
     recovered --> [*]
     discarded --> [*]
@@ -131,6 +137,9 @@ stateDiagram-v2
 | Time in `held` | Does not count as an attempt |
 | Attempts exhausted | Not a state. The Policy Engine sends the message to `awaiting_operator` |
 | Re-entry | Goes to `received`, not `ready`. The new failure may have new logs |
+| Re-entry of a closed message (silence mode counted a slow failure as recovered) | The closed message does not change. A new message is stored, linked to it. Counted as a false recovery |
+| Runbook rate limit reached | The message stays in `runbook_matched` until the hourly budget frees up |
+| Runbook expired while a message is in `runbook_matched` | The path is recorded as failed, reason `expired`. Back to `ready` |
 
 ## Message record
 
@@ -144,7 +153,7 @@ stateDiagram-v2
 | `failure_kind` | enum | `transient`, `permanent`, `unknown` |
 | `failure_reason`, `failure_dependency` | string | Short error and dependency involved |
 | `group_key` | string | Grouping key by root cause |
-| `classified_by` | enum | `header`, `rule`, `group`, `logs`, `inference`, `operator` |
+| `classified_by` | enum | `header`, `rule`, `group`, `logs`, `inference`, `operator`, `plugin` |
 | `state`, `version` | enum, int | Current state, and the version for optimistic locking |
 | `attempts` | list | Each attempt: when, result, error |
 | `failed_paths` | list | Paths that already failed for this message. The Policy Engine skips them |
