@@ -51,22 +51,25 @@ flowchart LR
 
 ## Components
 
-| Component | Watches | Does | Writes | Plugins |
-| --- | --- | --- | --- | --- |
-| **Collector** | Source | Consumes the DLQ. Extracts headers and correlation IDs. Computes `group_key`. Recognizes re-entries by `x-dlq-id`. Calls no external service. Commits the offset after the insert. | New message or re-entry in `received` | Source, Serde |
-| **Enricher** | `received` | Queries the configured sources by correlation IDs, or reuses a recent result for the same group. Never blocks: on failure or timeout it moves on with `unavailable`. | `enrichments` row; `enriched` | Log Provider |
-| **Policy Engine** | `enriched` | Classifies. Checks exhaustion. Routes by precedence: exhausted, matching runbook, transient, permanent. Skips paths that already failed for this message. | `runbook_matched`, `retrying`, `held` or `awaiting_operator` | Classifier |
-| **Transient Runner** | `retrying` due; `held`; `replaying` | Schedules retries with backoff. Opens and closes circuit breakers. Runs probes. Confirms recovery. | `outbox`; `replaying`, `held`, `retrying`, `recovered` or `received` | Probe, Recovery Detector |
-| **Runbook Runner** | `runbook_matched` | Executes the runbook action within its guardrails. Records each step. Returns failures to the Policy Engine. | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `enriched` | Transformer, Runbook Action |
-| **Poison Runner** | `awaiting_operator` not yet announced | Updates the cause group. Emits an event. | `notified_at`; `poisoned` event | — |
-| **Publisher** | Pending `outbox` rows | Serializes and publishes to the target. Marks the row as sent. | `outbox.sent_at` | Sink, Serde |
-| **Purger** | Expired messages; payloads past retention | Moves messages to `expired`. Archives and deletes payloads. Never deletes `transitions`. | `expired`; archived payload | Store |
-| **Analytics Engine** | `transitions` (CDC or rollup) | Computes funnel, cost, trends, recurrence. Exports OpenTelemetry and `/metrics`. Serves `/analytics`. | Rollups; analytic condition events | — |
-| **Alerts Watcher** | Events from `transitions` and Analytics; alert instances | Evaluates declared `Alert` resources. The only component that notifies. | Alert instances: `pending`, `sent` | Notifier |
+Each component has its own page with its responsibility, what it does not do, and its failure behavior.
+
+| Component | Owns | Does |
+| --- | --- | --- |
+| [Collector](components/collector.md) | Sources | Reads the DLQs. Extracts headers, correlation and `group_key`. Stores `received` |
+| [State Store](components/state-store.md) | All state | Single source of truth. Claim, compare-and-set, outbox, audit in one transaction |
+| [Enricher](components/enricher.md) | `received` | Fetches logs before classification. Never blocks |
+| [Policy Engine](components/policy-engine.md) | `enriched` | Classifies and routes. The only routing decision |
+| [Transient Runner](components/transient-runner.md) | `retrying`, `held`, `replaying` | Backoff, circuit breaker, probe, drain, recovery detection |
+| [Runbook Runner](components/runbook-runner.md) | `runbook_matched` | Executes a declared runbook within its guardrails |
+| [Poison Runner](components/poison-runner.md) | `awaiting_operator` (not announced) | Groups by cause and builds the context for an operator |
+| [Publisher](components/publisher.md) | `outbox` | The only writer to a broker |
+| [Purger](components/purger.md) | Expired messages and payloads | TTL, archive, delete payloads |
+| [Analytics Engine](components/analytics-engine.md) | Change stream of `transitions` | Metrics, funnel, cost, recurrence, anomaly findings |
+| [Alerts Watcher](components/alerts-watcher.md) | `alert_instances` | Evaluates `Alert` resources. The only component that notifies |
 
 The Collector never queries logs. If the logging backend is down, ingestion continues, and the Enricher moves messages on with `unavailable` after its timeout.
 
-Runners never notify. They emit events (`exhausted`, `poisoned`, `runbook_step`). The Alerts Watcher decides whether and whom to notify.
+Runners and the Analytics Engine never notify. They write transitions and findings. The Alerts Watcher decides whether and whom to notify.
 
 ## State machine and plugins
 

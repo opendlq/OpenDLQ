@@ -27,6 +27,7 @@ stateDiagram-v2
     awaiting_operator --> discarded: operator discards
     replaying --> recovered: success confirmed
     replaying --> received: back in the DLQ
+    replaying --> enriched: no ack before timeout
     recovered --> [*]
     discarded --> [*]
     routed --> [*]
@@ -39,7 +40,7 @@ stateDiagram-v2
 | `enriched` | Enrichment finished (or skipped, or unavailable). Ready to classify | Policy Engine |
 | `retrying` | Transient, retry scheduled at `next_retry_at` | Transient Runner |
 | `held` | Transient, dependency circuit open. Nothing is scheduled | Transient Runner |
-| `replaying` | In the outbox or published, waiting for confirmation | Transient Runner or Collector |
+| `replaying` | In the outbox or published, waiting for confirmation | Transient Runner (success or timeout) or Collector (back in the DLQ) |
 | `runbook_matched` | A runbook matched and will act | Runbook Runner |
 | `awaiting_approval` | The runbook's guardrail requires approval | Operator |
 | `awaiting_operator` | Permanent or exhausted. Grouped by cause, waiting for a decision | Operator |
