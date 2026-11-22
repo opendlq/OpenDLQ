@@ -1,19 +1,20 @@
 # Flows
 
-How a message moves through OpenDLQ in each situation. Every arrow into the state store is a single transaction that changes the message state, writes a row to `transitions`, and, when something must be published, writes a row to the `outbox`. Components never call each other; they read and write state. See [architecture](architecture.md) for the rules and the full state machine.
+How a message moves through OpenDLQ in each situation. Every arrow into the state store is a single transaction that changes the message state, writes a row to `transitions`, and, when something must be published, writes a row to the `outbox`. Components never call each other; they read and write state. See [architecture](architecture.md) for the rules and [state machine](state-machine.md) for every state.
 
 | Flow | Starts with | Ends with |
 | --- | --- | --- |
 | [1. Ingestion](#1-ingestion) | A message lands in the DLQ | `received` |
 | [2. Enrichment](#2-enrichment) | `received` | `enriched` |
 | [3. Classification](#3-classification) | `enriched` | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
-| [4. Transient recovery](#4-transient-recovery) | `retrying` | `recovered`, or back to `received` |
+| [4. Transient recovery](#4-transient-recovery) | `retrying` | `recovered`, or back to `received` or `enriched` |
 | [5. Dependency outage](#5-dependency-outage) | Many failures on one dependency | Backlog drained |
 | [6. Permanent failure and alert](#6-permanent-failure-and-alert) | `awaiting_operator` | Alert sent, with logs |
 | [7. Runbook](#7-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded`, or back to `enriched` |
 | [8. Operator action](#8-operator-action) | An operator command | `replaying`, `discarded`, or back to `enriched` |
 | [9. Expiry and purge](#9-expiry-and-purge) | TTL or retention reached | `expired`, payload archived |
 | [10. Configuration change](#10-configuration-change) | A YAML change | Resources applied |
+| [11. Anomaly finding](#11-anomaly-finding) | A committed transition | Finding open, alert sent if declared |
 
 ## 1. Ingestion
 
@@ -108,11 +109,16 @@ sequenceDiagram
     else fails again
         App->>Q: publish to DLQ with same x-dlq-id
         Note over S: Flow 1 attaches the attempt and sets received
+    else no ack before timeout (mode ack)
+        T->>S: state = enriched, attempt failed
+        Note over S: Flow 3 decides again
     end
 ```
 
 - In `silence` mode, the Transient Runner marks the message `recovered` when it does not come back within the configured window.
-- A message that comes back goes through enrichment and classification again. Enrichment usually reuses the group's result. Exhaustion is checked in classification.
+- A message that comes back goes through enrichment and classification again. Enrichment usually reuses the group's result.
+- The Transient Runner never decides that a message is exhausted. Every failed replay returns to the Policy Engine, which checks the attempt count.
+- A copy published twice after a Publisher crash carries the same `x-dlq-attempt`. Only one ack counts per attempt.
 
 ## 5. Dependency outage
 
@@ -234,3 +240,27 @@ sequenceDiagram
 
 - A change made through the API or UI to a declared resource is drift. `opendlq diff` shows it; `export` keeps it, `apply` discards it.
 - Resources are versioned. Every transition records the version of the policy, classifier or runbook that decided it.
+
+## 11. Anomaly finding
+
+```mermaid
+sequenceDiagram
+    participant S as State store
+    participant AE as Analytics Engine
+    participant OS as Analytics store
+    participant AW as Alerts Watcher
+    participant N as Notifier
+    S->>AE: transitions, in commit order (replication slot)
+    AE->>OS: write, idempotent by transition id
+    AE->>S: confirm slot position
+    AE->>OS: evaluate detectors per window
+    AE->>S: finding open (detector, subject, observed, expected, score)
+    S->>AW: finding opened
+    AW->>S: alert instance, state = pending
+    AW->>N: alert with finding, baseline, top groups, links
+    AW->>S: alert instance = sent
+```
+
+- The slot position is confirmed after the write. A crash replays transitions, and the idempotent write drops the copies.
+- A finding closes when the value stays within the baseline for one full window. An `Alert` can notify on close too.
+- No `Alert` matches the finding: it stays queryable on `/analytics`, the CLI and MCP, and nobody is notified.
