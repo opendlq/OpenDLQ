@@ -13,7 +13,7 @@ V0 is done when the demo below runs end to end with no manual step in between.
 - Retry, circuit breaker, probe and controlled drain.
 - Runbooks with guardrails.
 - Operator actions: list by cause, inspect, reclassify, replay, edit and replay, discard.
-- Analytics and recurrence as SQL over the state store, exposed on `/analytics`, `/metrics` and OTLP.
+- Analytics Engine with the `postgres` store, fed by logical replication. Funnel, cost, recurrence and findings, exposed on `/analytics`, `/metrics` and OTLP.
 - A log provider plugin over a local file, as a reference. Real integrations come after V0.
 
 **Out of scope for V0:** multiple brokers, multi-tenancy, UI, authentication.
@@ -37,7 +37,7 @@ A synthetic producer publishes generic events to `events`. An example consumer c
 5. **Circuit breaker and probe.** Pattern detection, `held` state, canary, rate-limited drain.
 6. **Operator.** Grouping by cause, reclassify, replay (single and batch), edit payload, discard with reason, audit.
 7. **Runbooks.** Match, actions, guardrails, dry run.
-8. **Analytics and recurrence.** Rollups, `/analytics`, OpenTelemetry export, episode detection, alerts.
+8. **Analytics and recurrence.** Replication pipeline, `postgres` store, `/analytics`, OpenTelemetry export, episode detection, detectors, alerts on findings.
 9. **Write-up.** README with the recorded demo, docs updated, open questions answered.
 
 Each milestone ends with an integration test against the Compose environment.
@@ -48,7 +48,7 @@ Each milestone ends with an integration test against the Compose environment.
 - Real log providers: Elasticsearch/OpenSearch, Loki, CloudWatch Logs, Datadog Logs.
 - UI.
 - Authentication and multi-tenancy.
-- Columnar analytics store through CDC.
+- `duckdb` and `clickhouse` analytics stores.
 - Published header contract and resource schemas as a standalone specification.
 
 ## Non-goals
@@ -63,4 +63,5 @@ Each milestone ends with an integration test against the Compose environment.
 - [ ] Default recovery detection: `ack` or `silence`?
 - [ ] Canary: oldest held message or newest? The oldest drains in order; the newest is more likely to still be valid.
 - [ ] Payload edits before replay: JSON Patch or full replacement?
+- [ ] Custom detectors: declared SQL, or a plugin? Built-in detectors only in V0.
 - [ ] Is a grouped endpoint (`GET /failures?group_by=reason`) enough for V0 without a UI?
