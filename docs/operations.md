@@ -45,10 +45,4 @@ Every state change is recorded in the same transaction as the change itself: who
 
 ## Purge
 
-Failed messages do not stay forever. Purge rules live in the `Policy`:
-
-- **TTL** per consumer or per cause. An expired message closes as `expired`, from any open state.
-- **Archive** the payload to cold storage before deleting it.
-- **Automatic discard** for causes marked as known and accepted.
-
-Purge deletes payloads only. The audit log and aggregated metrics stay.
+Failed messages do not stay forever. TTL and retention are set in the `Policy`. An expired message closes as `expired` from any open state. The payload is archived, then deleted. The audit log and aggregated metrics stay. See [Purger](components/purger.md).
