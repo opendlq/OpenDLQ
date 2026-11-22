@@ -33,7 +33,7 @@ Postgres (logical replication slot) → Analytics Engine → analytics store
 - The publication contains only `transitions`. That table is the fact table: every metric derives from it.
 - The engine confirms its position in the slot only after the write to the analytics store. A crash replays from the last confirmed position. Writes are idempotent by transition `id`.
 - The slot keeps WAL until the engine confirms it. Set `max_slot_wal_keep_size` on Postgres. The engine reports its lag as `opendlq_analytics_lag_seconds`.
-- The analytics store is derived data. `transitions` is never purged, so the store can be rebuilt from it at any time: snapshot, then stream.
+- The analytics store is derived data. It can be rebuilt from `transitions` at any time, for the period still within `audit.retention`: snapshot, then stream. See [retention](../configuration.md#retention).
 
 Why not poll `transitions` by increasing `id`: ids are assigned before commit, so a smaller id can commit after a larger one. A watermark on `id` skips it. The replication stream delivers in commit order.
 
@@ -162,6 +162,7 @@ analytics:
   store: { type: postgres }        # postgres | duckdb | clickhouse
   slot: opendlq_analytics
   max_lag: 60s
+  retention: unlimited             # aggregates in the analytics store
   detectors:
     sensitivity: medium
     warmup: 14d

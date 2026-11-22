@@ -25,9 +25,33 @@ plugins:
 analytics:
   store: { type: postgres }          # postgres | duckdb | clickhouse
   max_lag: 60s
+audit:
+  retention: 400d                    # or unlimited
+  archive: s3-archive                # optional Provider; archive before deletion
 ```
 
 `controllers` lists which components this process runs. One binary can run all of them, or each deployment can run a subset to scale them separately. See [deployment](architecture.md#deployment). The full `analytics` block is in [Analytics Engine](components/analytics-engine.md#configuration).
+
+### Retention
+
+Four settings decide how long data stays. Each one has a default and can be changed.
+
+| Data | Setting | Default | Where | Removed by |
+| --- | --- | --- | --- | --- |
+| Open message | `ttl` | none | `Policy`, per consumer or cause | Purger, to `expired` |
+| Payload of a closed message | `retention.payload` | `30d` | `Policy`, per consumer or cause | Purger, after `retention.archive` |
+| Audit log (`transitions`) | `audit.retention` | `400d` | `opendlq.yaml` | Purger, after `audit.archive` |
+| Analytics aggregates | `analytics.retention` | `unlimited` | `opendlq.yaml` | Analytics Engine |
+
+`audit.retention` follows three rules:
+
+1. **Only closed messages lose history.** Transitions of an open message are never removed. The Policy Engine reads them to count attempts and skip failed paths.
+2. **It covers every reader.** It must be at least the longest period OpenDLQ reads from `transitions`: the detector `lookback` and `warmup`, and the recurrence window. `opendlq diff` refuses a shorter value and says which setting needs more.
+3. **Removal is recorded.** Each purge writes an audit record: the period removed, the row count, the archive reference, and when.
+
+`400d` keeps more than one year, so a period can be compared with the same period a year before. A transition holds no payload, so a year is small. Set `unlimited` to keep everything, or less where data protection rules require it.
+
+The analytics store can be rebuilt from `transitions` only within `audit.retention`. Aggregates already in the analytics store follow `analytics.retention`.
 
 ## Resources
 
