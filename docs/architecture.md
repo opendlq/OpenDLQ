@@ -33,7 +33,7 @@ flowchart LR
     Store <--> Purger
     Publisher --> Sink
     Sink --> Topic[(Original topic)]
-    Store -->|CDC| Analytics[Analytics Engine]
+    Store -->|replication| Analytics[Analytics Engine]
     Store -. events .-> Alerts[Alerts Watcher]
     Analytics -. findings .-> Alerts
     Alerts --> Notifier
@@ -70,6 +70,18 @@ Each component has its own page with its responsibility, what it does not do, an
 The Collector never queries logs. If the logging backend is down, ingestion continues, and the Enricher moves messages on with `unavailable` after its timeout.
 
 Runners and the Analytics Engine never notify. They write transitions and findings. The Alerts Watcher decides whether and whom to notify.
+
+## Deployment
+
+The only required dependency is Postgres. Every component is in one binary, `opendlq`. The `controllers` setting in `opendlq.yaml` chooses which components a process runs.
+
+| Profile | Processes | Analytics store | For |
+| --- | --- | --- | --- |
+| **Minimal** | One `opendlq` with every component, plus Postgres | `postgres` | V0, local development, small installations |
+| **Single node** | Same as minimal | `duckdb` | More analytics volume, no extra process |
+| **Scaled** | Components split across processes, N replicas each, plus Postgres | `clickhouse` | Large installations |
+
+The code is the same in every profile. Coordination lives in the State Store (claim and compare-and-set), not in memory, so any component can run with N replicas.
 
 ## State machine and plugins
 

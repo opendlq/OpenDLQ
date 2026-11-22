@@ -54,6 +54,7 @@ These principles decide trade-offs. When two designs both work, pick the one tha
 **Consequences.**
 - Short retries stay in the consumer. OpenDLQ handles what survived them.
 - Broker support comes from source and sink plugins.
+- The only required dependency is Postgres. A broker, a CDC service or a columnar database is never required to run OpenDLQ.
 
 ## 6. One path for humans and agents.
 

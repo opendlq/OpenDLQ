@@ -22,9 +22,12 @@ telemetry:
   prometheus: :9090                  # serves /metrics
 plugins:
   dir: ./plugins                     # out-of-process plugins
+analytics:
+  store: { type: postgres }          # postgres | duckdb | clickhouse
+  max_lag: 60s
 ```
 
-`controllers` lists which controllers this process runs. One binary can run all of them, or each deployment can run a subset to scale them separately.
+`controllers` lists which components this process runs. One binary can run all of them, or each deployment can run a subset to scale them separately. See [deployment](architecture.md#deployment). The full `analytics` block is in [Analytics Engine](components/analytics-engine.md#configuration).
 
 ## Resources
 
