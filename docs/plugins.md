@@ -16,7 +16,7 @@ Plugins connect OpenDLQ to the outside world and to a team's domain. The core st
 | Log Provider | Correlation IDs + time window → logs | Elasticsearch, Loki, CloudWatch, Datadog Logs |
 | Notifier | Deliver an alert | Slack, PagerDuty, Opsgenie, webhook |
 | Runbook Action | Execute a declared step | Transform and replay, route, discard, call an API |
-| Store | Persist state, outbox and audit log | Postgres in V0 |
+| Store | Persist state, outbox and audit log | Postgres |
 
 ## Levels of extension
 

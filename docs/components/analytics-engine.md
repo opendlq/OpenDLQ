@@ -43,7 +43,7 @@ Analytics are eventually consistent, with a declared maximum lag (`max_lag`). Ab
 
 | Backend | Runs as | For |
 | --- | --- | --- |
-| `postgres` | Tables in the State Store database | V0 and small installations. No extra process |
+| `postgres` | Tables in the State Store database | Small installations. No extra process |
 | `duckdb` | Embedded in the engine, a local file | Single node with more volume. No extra process |
 | `clickhouse` | External server | Large installations |
 

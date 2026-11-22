@@ -77,7 +77,7 @@ The only required dependency is Postgres. Every component is in one binary, `ope
 
 | Profile | Processes | Analytics store | For |
 | --- | --- | --- | --- |
-| **Minimal** | One `opendlq` with every component, plus Postgres | `postgres` | V0, local development, small installations |
+| **Minimal** | One `opendlq` with every component, plus Postgres | `postgres` | Local development, small installations |
 | **Single node** | Same as minimal | `duckdb` | More analytics volume, no extra process |
 | **Scaled** | Components split across processes, N replicas each, plus Postgres | `clickhouse` | Large installations |
 

@@ -9,7 +9,7 @@ What an operator can do with failed messages, and through which interfaces.
 | **CLI** (`opendlq`) | Configuration (`diff`, `apply`, `export`) and day-to-day actions |
 | **API** | Integrations and the UI |
 | **MCP server** | AI agents. Same operations as the CLI and API |
-| **UI** | Exploring groups, reading context, acting on batches. Not in V0 |
+| **UI** | Exploring groups, reading context, acting on batches |
 
 All interfaces expose the same operations and write to the same audit log.
 
