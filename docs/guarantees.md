@@ -25,7 +25,10 @@ A replay is written to the `outbox` in the same transaction as the decision. Onl
 
 ## 4. Every change records who made it.
 
-Person, agent, runbook or controller: every state change and every applied resource records the actor, the time, the result and the version of the resource that decided it. The audit log is never purged.
+Person, agent, runbook or controller: every state change and every applied resource records the actor, the time, the result and the version of the resource that decided it.
+
+- **Retention:** the record stays for `audit.retention` (default `400d`, or `unlimited`). Only history of closed messages is removed, and each removal is itself recorded. See [retention](configuration.md#retention).
+- **Not guaranteed:** that the record stays forever, unless retention is `unlimited`.
 
 ## 5. State fails closed. Context fails open by default.
 

@@ -30,7 +30,7 @@ The State Store is a library inside each process, not a separate service. A sepa
 | Table | Holds | Written by |
 | --- | --- | --- |
 | `messages` | Current state of each message. See [message record](../state-machine.md#message-record) | All controllers |
-| `transitions` | Every state change: who, what, when, result. Audit log and analytics fact table. Never purged | All controllers, same transaction |
+| `transitions` | Every state change: who, what, when, result. Audit log and analytics fact table. Kept for `audit.retention` | All controllers, same transaction |
 | `outbox` | Replays to publish | Runners, same transaction |
 | `enrichments` | Log extracts and links | Enricher |
 | `alert_instances` | Alerts `pending` and `sent` | Alerts Watcher |

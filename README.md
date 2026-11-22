@@ -53,7 +53,7 @@ From there, it works on three fronts:
 - Cost per cause and per consumer (storage, replays, operator time).
 - Trends and recurrence: the same cause coming back after it was handled.
 - Metrics and traces through OpenTelemetry (OTLP), plus a Prometheus endpoint, so you build dashboards and alerts in the tools you already use.
-- Purge with policy: TTL per consumer or cause, archiving before deletion. The audit log is never deleted.
+- Purge with policy: TTL per consumer or cause, archiving before deletion. Configurable retention for payloads and the audit log.
 
 ## Design principles
 

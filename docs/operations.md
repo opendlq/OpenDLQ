@@ -33,8 +33,8 @@ Inspecting a message or a group shows the log extract and links fetched by the E
 
 ## Audit log
 
-Every state change is recorded in the same transaction as the change itself: who (person, agent, runbook or controller), what, when, and the result. The audit log is never purged.
+Every state change is recorded in the same transaction as the change itself: who (person, agent, runbook or controller), what, when, and the result. It is kept for `audit.retention`, `400d` by default. See [retention](configuration.md#retention).
 
 ## Purge
 
-Failed messages do not stay forever. TTL and retention are set in the `Policy`. An expired message closes as `expired` from any open state. The payload is archived, then deleted. The audit log and aggregated metrics stay. See [Purger](components/purger.md).
+Failed messages do not stay forever. TTL and retention are set in the `Policy`. An expired message closes as `expired` from any open state. The payload is archived, then deleted. The audit log follows its own retention. See [Purger](components/purger.md).
