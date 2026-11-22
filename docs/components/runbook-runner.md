@@ -1,4 +1,27 @@
-# Runbooks
+# Runbook Runner
+
+Executes the runbook the Policy Engine matched, within its guardrails.
+
+| | |
+| --- | --- |
+| Watches | `runbook_matched` |
+| Writes | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `enriched` |
+| Plugins | Transformer, Runbook Action |
+| Scales | N instances, by claim. Guardrail counters are in the State Store |
+
+## Responsibility
+
+- Run the actions of the runbook in order.
+- Record each step as a `runbook_step` transition.
+- Enforce the guardrails: rate, approval, expiry.
+- Return the message to `enriched` when an action fails or an approval is rejected.
+
+## Does not
+
+- Match runbooks. The Policy Engine does.
+- Notify. The steps are transitions, and the Alerts Watcher decides who hears about them.
+
+## Runbooks
 
 A runbook tells OpenDLQ what to do with a known permanent failure. The operator writes it. OpenDLQ executes it, within limits.
 
@@ -22,11 +45,11 @@ spec:
     expires: 2027-03-01
 ```
 
-## Match
+### Match
 
 A runbook matches on any combination of consumer, reason, grouping key, dependency, or an expression over headers and payload (CEL). Runbooks are checked before the transient path: a runbook can also cover a known transient case.
 
-## Actions
+### Actions
 
 | Action | Effect |
 | --- | --- |
@@ -39,7 +62,7 @@ A runbook matches on any combination of consumer, reason, grouping key, dependen
 
 Custom actions are plugins.
 
-## Guardrails
+### Guardrails
 
 Every runbook must declare:
 
@@ -49,7 +72,7 @@ Every runbook must declare:
 
 The expiry date is deliberate. A runbook is a documented workaround, not a permanent fix. When it expires, the failures go back to waiting for an operator, and the root cause becomes visible again. [Recurrence analytics](analytics-engine.md#recurrence) show how long a workaround has been covering a problem.
 
-## Lifecycle
+### Lifecycle
 
 1. **Suggestion.** When an operator applies the same action to the same group three times, OpenDLQ suggests a runbook with that match and action.
 2. **Dry run.** The operator runs the runbook against the message history in the state store and sees what it would have done.
@@ -60,6 +83,6 @@ The expiry date is deliberate. A runbook is a documented workaround, not a perma
 
 Every run is recorded in the audit log with the runbook's name and version.
 
-## What stays true
+### What stays true
 
 Permanent failures still never retry on their own. The only change is that a person declared the decision ahead of time, with limits, in a file that went through review.

@@ -1,4 +1,34 @@
-# Classification
+# Policy Engine
+
+The only component that decides which path a message takes. It classifies the message, then routes it to a runner.
+
+| | |
+| --- | --- |
+| Watches | `enriched` |
+| Writes | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
+| Plugins | Classifier |
+| Scales | N instances, by claim |
+
+## Responsibility
+
+- Read what it needs from the State Store: headers, enrichment result, message history, group memory.
+- Classify the message as transient or permanent. See [classification](#classification).
+- Match the message against the catalog of `Runbook` resources.
+- Route by precedence:
+    1. Attempts exhausted → `awaiting_operator`.
+    2. A runbook matches → `runbook_matched`.
+    3. Transient → `retrying`, or `held` if the dependency's circuit is open.
+    4. Permanent → `awaiting_operator`.
+- Skip a path that already failed for this message.
+
+Every failure on any path returns the message to `enriched`. The Policy Engine is the only place where a message changes path.
+
+## Does not
+
+- Execute a path. The runners do.
+- Retry, publish or notify.
+
+## Classification
 
 Every message that reaches OpenDLQ gets one of two kinds. The kind decides what happens next.
 
@@ -13,7 +43,7 @@ Every message that reaches OpenDLQ gets one of two kinds. The kind decides what 
 
 Treating both kinds the same way causes one of two errors. Retrying everything loads an unavailable dependency with messages that will never pass. Retrying nothing pages a human for a 30-second timeout.
 
-## How a message is classified
+### How a message is classified
 
 Classification happens in the Policy Engine, after [enrichment](enricher.md). By then the store holds the headers, the message history and the enrichment result. The classifier checks five signals in order and stops at the first one that answers:
 
@@ -29,11 +59,11 @@ The last pattern detects an unavailable dependency without an external health ch
 
 Every decision records which signal answered (`classified_by`: `header`, `rule`, `group`, `logs`, `inference` or `operator`), so the analytics can show which signals do the work.
 
-## Classification is never final
+### Classification is never final
 
 An operator can reclassify a message or a whole group. The reclassification is recorded, becomes the group's memory, and can feed the consumer's rules. Reclassifying a permanent message as transient is the only way it goes back to retrying.
 
-## Classification is a plugin
+### Classification is a plugin
 
 The core defines the interface:
 
