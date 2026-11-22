@@ -59,7 +59,7 @@ For each cause, OpenDLQ keeps:
 - Accumulated cost.
 - Trend: growing, stable, falling.
 
-A cause with three or more episodes and growing cost raises a recurrence alert. See [alerts](alerts.md).
+A cause with three or more episodes and growing cost raises a recurrence alert. See [alerts](alerts-watcher.md).
 
 ## Export
 

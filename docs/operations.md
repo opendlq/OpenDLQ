@@ -37,7 +37,7 @@ When a consumer sends a message to the DLQ, it usually also writes an error log 
 - An operator can ask for a message to be enriched again.
 - OpenDLQ stores a link to the query and a short snippet. It does not copy logs.
 
-The full behavior, statuses and configuration are in [enrichment](enrichment.md).
+The full behavior, statuses and configuration are in [enrichment](components/enricher.md).
 
 ## Audit log
 

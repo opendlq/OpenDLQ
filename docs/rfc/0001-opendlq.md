@@ -45,19 +45,19 @@ Non-goals are listed in the [roadmap](../roadmap.md#non-goals).
 
 Every processing failure has one of two natures, and the correct handling is opposite for each. Treating them the same way produces one of two errors: retrying everything overloads an unavailable dependency, and retrying nothing pages a human for a 30-second timeout.
 
-OpenDLQ therefore makes classification the first step, not a manual step afterwards. See [classification](../classification.md).
+OpenDLQ therefore makes classification the first step, not a manual step afterwards. See [classification](../components/policy-engine.md).
 
 ## Design
 
 | Topic | Document |
 | --- | --- |
 | Principles | [principles.md](../principles.md) |
-| Classification and header contract | [classification.md](../classification.md) |
-| Retry, circuit breaker, probe, drain | [recovery.md](../recovery.md) |
-| Runbooks | [runbooks.md](../runbooks.md) |
-| Funnel, cost, recurrence, export | [analytics.md](../analytics.md) |
-| Alerts | [alerts.md](../alerts.md) |
-| Enrichment | [enrichment.md](../enrichment.md) |
+| Classification and header contract | [classification.md](../components/policy-engine.md) |
+| Retry, circuit breaker, probe, drain | [recovery.md](../components/transient-runner.md) |
+| Runbooks | [runbooks.md](../components/runbook-runner.md) |
+| Funnel, cost, recurrence, export | [analytics.md](../components/analytics-engine.md) |
+| Alerts | [alerts.md](../components/alerts-watcher.md) |
+| Enrichment | [enrichment.md](../components/enricher.md) |
 | Runtime and resource configuration | [configuration.md](../configuration.md) |
 | Operator actions, correlated logs, purge | [operations.md](../operations.md) |
 | Controllers, state machine, plugins, consistency | [architecture.md](../architecture.md) |

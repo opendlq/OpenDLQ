@@ -47,7 +47,7 @@ Every runbook must declare:
 - **Approval:** how many first runs need an operator's approval before it runs on its own.
 - **Expiry date:** a runbook without one is rejected.
 
-The expiry date is deliberate. A runbook is a documented workaround, not a permanent fix. When it expires, the failures go back to waiting for an operator, and the root cause becomes visible again. [Recurrence analytics](analytics.md#recurrence) show how long a workaround has been covering a problem.
+The expiry date is deliberate. A runbook is a documented workaround, not a permanent fix. When it expires, the failures go back to waiting for an operator, and the root cause becomes visible again. [Recurrence analytics](analytics-engine.md#recurrence) show how long a workaround has been covering a problem.
 
 ## Lifecycle
 

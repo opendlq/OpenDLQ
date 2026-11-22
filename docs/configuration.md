@@ -92,7 +92,7 @@ spec:
 | `serde` | `json` | How to decode and encode payloads |
 | `correlation_headers` | `[traceparent]` | Headers to extract for enrichment and tracing |
 | `enrichment.sources` | none | Providers to query, each with an `extract` map of JSON paths. Without sources, enrichment is `skipped` |
-| `enrichment.timeout`, `retries`, `backoff` | `3s`, `2`, `1s` | Bound the time a message waits before classification. See [enrichment](enrichment.md) |
+| `enrichment.timeout`, `retries`, `backoff` | `3s`, `2`, `1s` | Bound the time a message waits before classification. See [enrichment](components/enricher.md) |
 | `enrichment.reuse_window` | `10m` | Reuse a recent result for the same `group_key` instead of querying again |
 | `group_key` | `headers["x-failure-reason"]` | CEL expression the Collector uses to group messages |
 
@@ -115,7 +115,7 @@ spec:
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `retry` | 5, 30 s, ×2, 30 min, ±20% | Backoff for transient failures. See [recovery](recovery.md) |
+| `retry` | 5, 30 s, ×2, 30 min, ±20% | Backoff for transient failures. See [recovery](components/transient-runner.md) |
 | `breaker.window`, `threshold` | `60s`, `20` | Distinct transient failures on one dependency that open the circuit |
 | `probe.type` | `canary` | `canary` or `health_check` (with `url`) |
 | `probe.every`, `cap` | `30s`, `5m` | Probe interval and its ceiling as it doubles |
@@ -146,7 +146,7 @@ spec:
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `transient`, `permanent` | Built-in lists | Error types per kind. See [classification](classification.md) |
+| `transient`, `permanent` | Built-in lists | Error types per kind. See [classification](components/policy-engine.md) |
 | `rules` | none | CEL rules over headers, error and enrichment fields, each with a `kind` and an optional `dependency` |
 | `group_memory` | `24h` | How long a group's classification applies to new messages of the same `group_key` |
 | `inference.same_message_failures` | `3` | Repeated failures with the same error that make a message permanent |
@@ -154,7 +154,7 @@ spec:
 
 ### Runbook
 
-See [runbooks](runbooks.md) for `match`, `action` and the required `guardrails`.
+See [runbooks](components/runbook-runner.md) for `match`, `action` and the required `guardrails`.
 
 ### Alert
 
@@ -173,7 +173,7 @@ spec:
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `when` | — | CEL expression over events, metrics and recurrence. See [alerts](alerts.md) |
+| `when` | — | CEL expression over events, metrics and recurrence. See [alerts](components/alerts-watcher.md) |
 | `severity` | `report` | `page` or `report` |
 | `audience` | `operational` | `operational` or `decision` |
 | `notify` | — | One or more notifier `Provider` names |

@@ -1,6 +1,6 @@
 # Recovery
 
-OpenDLQ recovers transient failures without human involvement. Four mechanisms work together. All of them are set per consumer in a `Policy` resource. The full field reference is in [configuration](configuration.md#policy).
+OpenDLQ recovers transient failures without human involvement. Four mechanisms work together. All of them are set per consumer in a `Policy` resource. The full field reference is in [configuration](../configuration.md#policy).
 
 ```yaml
 kind: Policy

@@ -15,7 +15,7 @@ Treating both kinds the same way causes one of two errors. Retrying everything l
 
 ## How a message is classified
 
-Classification happens in the Policy Engine, after [enrichment](enrichment.md). By then the store holds the headers, the message history and the enrichment result. The classifier checks five signals in order and stops at the first one that answers:
+Classification happens in the Policy Engine, after [enrichment](enricher.md). By then the store holds the headers, the message history and the enrichment result. The classifier checks five signals in order and stops at the first one that answers:
 
 1. **Consumer header.** The consumer publishes to the DLQ with the headers of the [header contract](#header-contract). This is the recommended path. It is the cheapest and most precise signal.
 2. **Rule.** Rules in configuration map an error to a kind. A rule can read headers, the error, and the fields the Enricher extracted from the logs, such as `enrichment.error_class`. Defaults: 5xx, timeout, `connection refused`, `ECONNRESET`, 429 and deadlock are transient; validation 4xx, parse or serialization errors, constraint violations and `nil dereference` are permanent.
@@ -23,7 +23,7 @@ Classification happens in the Policy Engine, after [enrichment](enrichment.md). 
 4. **Error class from the logs.** If the enrichment result carries an exception class that no rule covers, a built-in table maps common classes to a kind: `SocketTimeoutException` or `ConnectException` are transient; `JsonParseException` or `NullPointerException` are permanent. Rules override the table.
 5. **Inference from behavior.** With nothing above, the message starts as transient. OpenDLQ then watches two patterns:
     - **The same message fails N times with the same error.** The message is the problem. It is treated as permanent.
-    - **Many different messages fail in the same window with the same error or dependency.** The dependency is the problem, not the messages. The circuit breaker for that dependency opens and the messages are held until a probe passes. See [recovery](recovery.md).
+    - **Many different messages fail in the same window with the same error or dependency.** The dependency is the problem, not the messages. The circuit breaker for that dependency opens and the messages are held until a probe passes. See [recovery](transient-runner.md).
 
 The last pattern detects an unavailable dependency without an external health check.
 
@@ -64,4 +64,4 @@ OpenDLQ adds two headers to every replay:
 
 A consumer that already processed an `x-dlq-id` successfully should skip it and acknowledge. A message that fails again after a replay goes back to the DLQ with the same `x-dlq-id`, and OpenDLQ attaches the new failure to the existing record.
 
-OpenDLQ also reads correlation headers when present: `traceparent`, `x-request-id`, `x-message-id`, and any names set in configuration. See [operations](operations.md#correlated-logs).
+OpenDLQ also reads correlation headers when present: `traceparent`, `x-request-id`, `x-message-id`, and any names set in configuration. See [operations](../operations.md#correlated-logs).

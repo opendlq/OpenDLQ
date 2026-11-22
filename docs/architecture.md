@@ -139,7 +139,7 @@ stateDiagram-v2
 | `runbook` | string | Name and version of the matching runbook |
 | `expires_at` | timestamp | TTL deadline |
 | `notified_at` | timestamp | When the Poison Runner announced it |
-| `enrichment_id` | UUID | Reference to the result in `enrichments`. See [enrichment](enrichment.md) |
+| `enrichment_id` | UUID | Reference to the result in `enrichments`. See [enrichment](components/enricher.md) |
 | `correlation` | map | Correlation IDs extracted from headers |
 
 The history of state changes and the audit trail live in `transitions`, not on the message.

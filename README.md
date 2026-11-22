@@ -71,12 +71,12 @@ The reasoning behind each principle is in [docs/principles.md](docs/principles.m
 | Topic | |
 | --- | --- |
 | [Principles](docs/principles.md) | The rules that decide trade-offs |
-| [Classification](docs/classification.md) | Transient vs. permanent, and the header contract |
-| [Recovery](docs/recovery.md) | Retry, circuit breaker, probe, controlled drain, idempotency |
-| [Runbooks](docs/runbooks.md) | Automating known permanent failures, with guardrails |
-| [Analytics](docs/analytics.md) | Resolution funnel, cost, recurrence, OpenTelemetry export |
-| [Alerts](docs/alerts.md) | Declared alerts with context, for two audiences |
-| [Enrichment](docs/enrichment.md) | Correlated logs, fetched before classification |
+| [Classification](docs/components/policy-engine.md) | Transient vs. permanent, and the header contract |
+| [Recovery](docs/components/transient-runner.md) | Retry, circuit breaker, probe, controlled drain, idempotency |
+| [Runbooks](docs/components/runbook-runner.md) | Automating known permanent failures, with guardrails |
+| [Analytics](docs/components/analytics-engine.md) | Resolution funnel, cost, recurrence, OpenTelemetry export |
+| [Alerts](docs/components/alerts-watcher.md) | Declared alerts with context, for two audiences |
+| [Enrichment](docs/components/enricher.md) | Correlated logs, fetched before classification |
 | [Configuration](docs/configuration.md) | Runtime settings and full resource reference |
 | [Operations](docs/operations.md) | Operator actions, correlated logs, audit, purge |
 | [Architecture](docs/architecture.md) | Controllers, state machine, plugins, consistency |

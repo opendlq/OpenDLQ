@@ -59,7 +59,7 @@ sequenceDiagram
 
 - The `enrichments` row and the state change are one transaction. The Policy Engine never sees `enriched` without the data.
 - A source that fails or times out produces `unavailable`, not a stuck message.
-- See [enrichment](enrichment.md).
+- See [enrichment](components/enricher.md).
 
 ## 3. Classification
 
@@ -85,7 +85,7 @@ Precedence:
 
 An operator's classification, when present, replaces the classifier's answer.
 
-A path that already failed for this message (a runbook that failed or was rejected) is skipped. See [classification](classification.md) for how the kind is decided.
+A path that already failed for this message (a runbook that failed or was rejected) is skipped. See [classification](components/policy-engine.md) for how the kind is decided.
 
 ## 4. Transient recovery
 

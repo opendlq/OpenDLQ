@@ -56,7 +56,7 @@ Messages reference the result by `enrichment_id`.
 
 ## Sources
 
-Each consumer lists one or more sources. Each source is a `Provider` (see [configuration](configuration.md#provider)) and an extraction:
+Each consumer lists one or more sources. Each source is a `Provider` (see [configuration](../configuration.md#provider)) and an extraction:
 
 ```yaml
 kind: Consumer
@@ -77,7 +77,7 @@ spec:
     reuse_window: 10m
 ```
 
-`extract` maps JSON paths in the log to fields in `data`. The Policy Engine and classifier rules can read those fields. See [classification](classification.md).
+`extract` maps JSON paths in the log to fields in `data`. The Policy Engine and classifier rules can read those fields. See [classification](policy-engine.md).
 
 ## On demand
 

@@ -1,6 +1,6 @@
 # Alerts
 
-Alerts are declared, not configured in a UI. Each alert is an `Alert` resource in the configuration repository. `notify` names notifier `Provider` resources. The full field reference is in [configuration](configuration.md#alert).
+Alerts are declared, not configured in a UI. Each alert is an `Alert` resource in the configuration repository. `notify` names notifier `Provider` resources. The full field reference is in [configuration](../configuration.md#alert).
 
 ```yaml
 kind: Alert
@@ -58,7 +58,7 @@ An alert that fires with no context starts the investigation from zero. Every no
 
 ## Alerts carry enrichment
 
-Every message is enriched before it is classified, so an alert about a message always has a final enrichment status when it fires. There is nothing to wait for. When logs are missing, the alert says why: no matching logs, or the source was unavailable. See [enrichment](enrichment.md).
+Every message is enriched before it is classified, so an alert about a message always has a final enrichment status when it fires. There is nothing to wait for. When logs are missing, the alert says why: no matching logs, or the source was unavailable. See [enrichment](enricher.md).
 
 ## Who sends notifications
 
