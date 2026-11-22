@@ -5,7 +5,7 @@ Fetches the context the DLQ does not have, before the message is classified.
 | | |
 | --- | --- |
 | Watches | `received` |
-| Writes | `enrichments` row; `enriched`, or `awaiting_operator` after `max_wait` |
+| Writes | `enrichments` row; `ready`, or `awaiting_operator` after `max_wait` |
 | Plugins | Log Provider |
 | Scales | N instances, by claim |
 
@@ -22,18 +22,18 @@ Enrichment adds the context the DLQ does not have: the application logs and the 
 ### Where it sits
 
 ```
-received → [Enricher] → enriched → [Policy Engine] → ...
+received → [Enricher] → ready → [Policy Engine] → ...
 ```
 
-- The **Enricher** owns `received`. It queries the sources configured for the consumer, stores the result and moves the message to `enriched`.
-- The **Policy Engine** owns `enriched`. When it classifies, headers, history and logs are all in the store.
-- A consumer with no sources configured passes straight through: the Enricher moves the message to `enriched` without querying anything.
+- The **Enricher** owns `received`. It queries the sources configured for the consumer, stores the result and moves the message to `ready`.
+- The **Policy Engine** owns `ready`. When it classifies, headers, history and logs are all in the store.
+- A consumer with no sources configured passes straight through: the Enricher moves the message to `ready` without querying anything.
 
 The Collector never queries external systems. Ingestion does not depend on the logging backend.
 
 ### When a source is unavailable
 
-By default, if a source fails or takes too long, the message still moves to `enriched`, with the status `unavailable`. The Policy Engine then classifies without logs. A logging outage makes classification less informed, never stuck.
+By default, if a source fails or takes too long, the message still moves to `ready`, with the status `unavailable`. The Policy Engine then classifies without logs. A logging outage makes classification less informed, never stuck.
 
 A consumer that does not accept deciding without logs sets `on_unavailable: wait`:
 
@@ -45,8 +45,11 @@ A consumer that does not accept deciding without logs sets `on_unavailable: wait
 
 A wait always has a maximum. No external dependency holds a message forever. See [guarantees](../guarantees.md#5-state-fails-closed-context-fails-open-by-default).
 
-| Status | Meaning |
+The outcome is stored on the message as `enrichment_status`, an enum. The state does not say whether enrichment succeeded. `ready` only means the Policy Engine can decide.
+
+| `enrichment_status` | Meaning |
 | --- | --- |
+| `pending` | Not tried yet, or trying again with `on_unavailable: wait` |
 | `enriched` | Logs found. Extracted fields, a snippet and a link are stored |
 | `reused` | A recent result for the same group was reused. No query was made |
 | `not_found` | Queries finished with no matching logs |
@@ -65,7 +68,7 @@ A thousand messages with the same error tell the same story, and log APIs charge
 
 ### What is stored
 
-Results go to an `enrichments` table, separate from `messages`, written in the same transaction as the state change. The Policy Engine never sees `enriched` without the data.
+Results go to an `enrichments` table, separate from `messages`, written in the same transaction as the state change. The Policy Engine never sees `ready` without the data.
 
 | Column | Type | Holds |
 | --- | --- | --- |
@@ -106,9 +109,17 @@ spec:
 
 `extract` maps JSON paths in the log to fields in `data`. The Policy Engine and classifier rules can read those fields. See [classification](policy-engine.md).
 
-### On demand
+### Enriching again
 
-An operator can ask for a message to be enriched again, for example after the log backend recovers. The new result replaces the reference and is recorded in the audit log. It never changes a decision already taken.
+A message is enriched again in three cases. Only the first one can change a decision, because the message goes through classification again.
+
+| When | Why |
+| --- | --- |
+| Re-entry: a replay failed and the message is back in `received` | The new failure may have new logs |
+| The message reaches `awaiting_operator` with `unavailable` | The operator should see the logs. Runs in the background |
+| An operator asks for it | For example, after the log backend recovers |
+
+In the last two cases the new result replaces the reference and is recorded in the audit log. It never changes a decision already taken.
 
 ### Deep links without an API
 

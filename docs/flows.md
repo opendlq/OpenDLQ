@@ -5,13 +5,13 @@ How a message moves through OpenDLQ in each situation. Every arrow into the stat
 | Flow | Starts with | Ends with |
 | --- | --- | --- |
 | [1. Ingestion](#1-ingestion) | A message lands in the DLQ | `received` |
-| [2. Enrichment](#2-enrichment) | `received` | `enriched` |
-| [3. Classification](#3-classification) | `enriched` | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
-| [4. Transient recovery](#4-transient-recovery) | `retrying` | `recovered`, or back to `received` or `enriched` |
+| [2. Enrichment](#2-enrichment) | `received` | `ready` |
+| [3. Classification](#3-classification) | `ready` | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
+| [4. Transient recovery](#4-transient-recovery) | `retrying` | `recovered`, or back to `received` or `ready` |
 | [5. Dependency outage](#5-dependency-outage) | Many failures on one dependency | Backlog drained |
 | [6. Permanent failure and alert](#6-permanent-failure-and-alert) | `awaiting_operator` | Alert sent, with logs |
-| [7. Runbook](#7-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded`, or back to `enriched` |
-| [8. Operator action](#8-operator-action) | An operator command | `replaying`, `discarded`, or back to `enriched` |
+| [7. Runbook](#7-runbook) | `runbook_matched` | `replaying`, `routed`, `discarded`, or back to `ready` |
+| [8. Operator action](#8-operator-action) | An operator command | `replaying`, `discarded`, or back to `ready` |
 | [9. Expiry and purge](#9-expiry-and-purge) | TTL or retention reached | `expired`, payload archived |
 | [10. Configuration change](#10-configuration-change) | A YAML change | Resources applied |
 | [11. Anomaly finding](#11-anomaly-finding) | A committed transition | Finding open, alert sent if declared |
@@ -46,19 +46,19 @@ sequenceDiagram
     participant LP as Log provider
     S->>E: next received message (SKIP LOCKED)
     alt no sources configured
-        E->>S: state = enriched (skipped)
+        E->>S: enrichment_status = skipped, state = ready
     else recent result for the same group_key
-        E->>S: link result, state = enriched (reused)
+        E->>S: link result, enrichment_status = reused, state = ready
     else
         E->>LP: query by correlation IDs
         LP-->>E: logs, nothing, or error
         E->>E: retry within timeout
-        E->>S: enrichments row + state = enriched
+        E->>S: enrichments row + enrichment_status + state = ready
     end
     S-->>S: NOTIFY policy
 ```
 
-- The `enrichments` row and the state change are one transaction. The Policy Engine never sees `enriched` without the data.
+- The `enrichments` row and the state change are one transaction. The Policy Engine never sees `ready` without the data.
 - A source that fails or times out produces `unavailable`, not a stuck message.
 - See [enrichment](components/enricher.md).
 
@@ -68,7 +68,7 @@ sequenceDiagram
 sequenceDiagram
     participant S as State store
     participant P as Policy Engine
-    S->>P: next enriched message (SKIP LOCKED)
+    S->>P: next ready message (SKIP LOCKED)
     P->>P: attempts >= policy max?
     P->>P: matching runbook?
     P->>P: classify: header, rule, inference
@@ -110,7 +110,7 @@ sequenceDiagram
         App->>Q: publish to DLQ with same x-dlq-id
         Note over S: Flow 1 attaches the attempt and sets received
     else no ack before timeout (mode ack)
-        T->>S: state = enriched, attempt failed
+        T->>S: state = ready, attempt failed
         Note over S: Flow 3 decides again
     end
 ```
@@ -173,7 +173,7 @@ sequenceDiagram
     R->>R: guardrails: expired? rate limit? approvals left?
     alt approval required
         R->>S: state = awaiting_approval
-        Op->>S: approve (or reject → enriched)
+        Op->>S: approve (or reject → ready)
         S->>R: runbook_matched (approved)
     end
     alt transform + replay
@@ -183,11 +183,11 @@ sequenceDiagram
     else discard
         R->>S: state = discarded, reason
     else action fails or guardrail blocks
-        R->>S: outcome recorded, state = enriched
+        R->>S: outcome recorded, state = ready
     end
 ```
 
-- The Runbook Runner never picks another path. A failure goes back to `enriched`, and the Policy Engine routes the message again without that runbook.
+- The Runbook Runner never picks another path. A failure goes back to `ready`, and the Policy Engine routes the message again without that runbook.
 - An expired runbook never matches. The messages it covered go to whichever path the Policy Engine picks next, usually `awaiting_operator`.
 - Every step writes the runbook name and version to `transitions`.
 
@@ -207,7 +207,7 @@ sequenceDiagram
 
 - The API never publishes. It writes the decision; the controllers execute it.
 - Edit-and-replay stores the new payload with the decision. The original payload stays in history.
-- Reclassifying sends the messages back to `enriched` with the operator's classification, and the Policy Engine routes them. Reclassifying permanent as transient is the only path back to automatic retries.
+- Reclassifying sends the messages back to `ready` with the operator's classification, and the Policy Engine routes them. Reclassifying permanent as transient is the only path back to automatic retries.
 
 ## 9. Expiry and purge
 

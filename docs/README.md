@@ -21,7 +21,7 @@ Start with the principles and the architecture. Then read the page of each compo
 | [Collector](components/collector.md) | Sources | Ingestion, `group_key`, re-entries |
 | [State Store](components/state-store.md) | All state | Claim, compare-and-set, outbox, tables |
 | [Enricher](components/enricher.md) | `received` | Correlated logs, statuses, reuse by group |
-| [Policy Engine](components/policy-engine.md) | `enriched` | Classification and routing |
+| [Policy Engine](components/policy-engine.md) | `ready` | Classification and routing |
 | [Transient Runner](components/transient-runner.md) | `retrying`, `held`, `replaying` | Retry, circuit breaker, probe, drain, recovery detection |
 | [Runbook Runner](components/runbook-runner.md) | `runbook_matched` | Runbooks, actions, guardrails, lifecycle |
 | [Poison Runner](components/poison-runner.md) | `awaiting_operator` | Grouping and context for operators |

@@ -4,7 +4,7 @@ The only component that decides which path a message takes. It classifies the me
 
 | | |
 | --- | --- |
-| Watches | `enriched` |
+| Watches | `ready` |
 | Writes | `retrying`, `held`, `runbook_matched` or `awaiting_operator` |
 | Plugins | Classifier |
 | Scales | N instances, by claim |
@@ -21,7 +21,7 @@ The only component that decides which path a message takes. It classifies the me
     4. Permanent → `awaiting_operator`.
 - Skip a path that already failed for this message.
 
-Every failure on any path returns the message to `enriched`. The Policy Engine is the only place where a message changes path.
+Every failure on any path returns the message to `ready`. The Policy Engine is the only place where a message changes path.
 
 ## Does not
 

@@ -5,13 +5,13 @@ Recovers transient failures without human involvement.
 | | |
 | --- | --- |
 | Watches | `retrying` when due; `held`; `replaying` |
-| Writes | `outbox`; `replaying`, `held`, `retrying`, `recovered`, or `enriched` on a failed replay |
+| Writes | `outbox`; `replaying`, `held`, `retrying`, `recovered`, or `ready` on a failed replay |
 | Plugins | Probe, Recovery Detector |
 | Scales | N instances, by claim. Breaker state is in the State Store |
 
 ## Does not
 
-- Decide that a message is exhausted. A failed replay returns the message to `enriched`, and the Policy Engine checks the attempt count.
+- Decide that a message is exhausted. A failed replay returns the message to `ready`, and the Policy Engine checks the attempt count.
 - Retry a permanent failure.
 - Publish. It writes to the `outbox`. See [Publisher](publisher.md).
 

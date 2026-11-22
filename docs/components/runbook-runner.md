@@ -5,7 +5,7 @@ Executes the runbook the Policy Engine matched, within its guardrails.
 | | |
 | --- | --- |
 | Watches | `runbook_matched` |
-| Writes | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `enriched` |
+| Writes | `outbox`; `replaying`, `routed`, `discarded`, `awaiting_approval` or `ready` |
 | Plugins | Transformer, Runbook Action |
 | Scales | N instances, by claim. Guardrail counters are in the State Store |
 
@@ -14,7 +14,7 @@ Executes the runbook the Policy Engine matched, within its guardrails.
 - Run the actions of the runbook in order.
 - Record each step as a `runbook_step` transition.
 - Enforce the guardrails: rate, approval, expiry.
-- Return the message to `enriched` when an action fails or an approval is rejected.
+- Return the message to `ready` when an action fails or an approval is rejected.
 
 ## Does not
 
