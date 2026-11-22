@@ -39,4 +39,4 @@ An ack for an older attempt is ignored. With mode `silence`, the consumer publis
 
 ## Correlation headers
 
-OpenDLQ also reads correlation headers when present: `traceparent`, `x-request-id`, `x-message-id`, and any names set in configuration. See [operations](operations.md#correlated-logs).
+OpenDLQ also reads correlation headers when present: `traceparent`, `x-request-id`, `x-message-id`, and any names set in configuration. See [Enricher](components/enricher.md).
