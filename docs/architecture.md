@@ -57,7 +57,7 @@ Each component has its own page with its responsibility, what it does not do, an
 | --- | --- | --- |
 | [Collector](components/collector.md) | Sources | Reads the DLQs. Extracts headers, correlation and `group_key`. Stores `received` |
 | [State Store](components/state-store.md) | All state | Single source of truth. Claim, compare-and-set, outbox, audit in one transaction |
-| [Enricher](components/enricher.md) | `received` | Fetches logs before classification. Never blocks |
+| [Enricher](components/enricher.md) | `received` | Fetches logs before classification. Does not block by default |
 | [Policy Engine](components/policy-engine.md) | `enriched` | Classifies and routes. The only routing decision |
 | [Transient Runner](components/transient-runner.md) | `retrying`, `held`, `replaying` | Backoff, circuit breaker, probe, drain, recovery detection |
 | [Runbook Runner](components/runbook-runner.md) | `runbook_matched` | Executes a declared runbook within its guardrails |

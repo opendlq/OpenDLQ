@@ -86,6 +86,7 @@ spec:
     retries: 2
     backoff: 1s
     reuse_window: 10m
+    on_unavailable: continue
 ```
 
 | Field | Default | Meaning |
@@ -97,6 +98,8 @@ spec:
 | `enrichment.sources` | none | Providers to query, each with an `extract` map of JSON paths. Without sources, enrichment is `skipped` |
 | `enrichment.timeout`, `retries`, `backoff` | `3s`, `2`, `1s` | Bound the time a message waits before classification. See [enrichment](components/enricher.md) |
 | `enrichment.reuse_window` | `10m` | Reuse a recent result for the same `group_key` instead of querying again |
+| `enrichment.on_unavailable` | `continue` | `continue` classifies without logs. `wait` keeps trying until `max_wait`. See [enrichment](components/enricher.md#when-a-source-is-unavailable) |
+| `enrichment.max_wait`, `after_max_wait` | `15m`, `continue` | With `wait`: the maximum wait, then `continue` or `operator` |
 | `group_key` | `headers["x-failure-reason"]` | CEL expression the Collector uses to group messages |
 
 ### Policy

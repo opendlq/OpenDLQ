@@ -5,14 +5,14 @@ Fetches the context the DLQ does not have, before the message is classified.
 | | |
 | --- | --- |
 | Watches | `received` |
-| Writes | `enrichments` row; `enriched` |
+| Writes | `enrichments` row; `enriched`, or `awaiting_operator` after `max_wait` |
 | Plugins | Log Provider |
 | Scales | N instances, by claim |
 
 ## Does not
 
 - Classify. It only adds data for the Policy Engine.
-- Block. On failure or timeout the message moves on as `unavailable`.
+- Block by default. On failure or timeout the message moves on as `unavailable`. A consumer can choose to wait, always with a maximum.
 - Copy logs. It stores a short extract and a link.
 
 ## How enrichment works
@@ -31,9 +31,19 @@ received → [Enricher] → enriched → [Policy Engine] → ...
 
 The Collector never queries external systems. Ingestion does not depend on the logging backend.
 
-### Enrichment never blocks
+### When a source is unavailable
 
-If a source fails or takes too long, the message still moves to `enriched`, with the status `unavailable`. The Policy Engine then classifies without logs. A logging outage makes classification less informed, never stuck.
+By default, if a source fails or takes too long, the message still moves to `enriched`, with the status `unavailable`. The Policy Engine then classifies without logs. A logging outage makes classification less informed, never stuck.
+
+A consumer that does not accept deciding without logs sets `on_unavailable: wait`:
+
+| `on_unavailable` | `after_max_wait` | Source down |
+| --- | --- | --- |
+| `continue` (default) | — | Classify without logs, as `unavailable` |
+| `wait` | `continue` | Keep the message in `received` and try again until `max_wait`, then classify without logs |
+| `wait` | `operator` | Keep the message in `received` and try again until `max_wait`, then send it to `awaiting_operator` |
+
+A wait always has a maximum. No external dependency holds a message forever. See [guarantees](../guarantees.md#5-state-fails-closed-context-fails-open-by-default).
 
 | Status | Meaning |
 | --- | --- |

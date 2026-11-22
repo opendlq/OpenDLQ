@@ -8,6 +8,7 @@ Every message in OpenDLQ is in exactly one state. Each open state has one owner:
 stateDiagram-v2
     [*] --> received
     received --> enriched: enrichment done or skipped
+    received --> awaiting_operator: max_wait reached, after_max_wait operator
     enriched --> retrying: transient
     enriched --> held: transient, circuit open
     enriched --> runbook_matched: runbook matches
@@ -36,7 +37,7 @@ stateDiagram-v2
 
 | State | Meaning | Left by |
 | --- | --- | --- |
-| `received` | Stored by the Collector, not yet enriched | Enricher |
+| `received` | Stored by the Collector, not yet enriched. With `on_unavailable: wait`, stays here until a source answers or `max_wait` | Enricher |
 | `enriched` | Enrichment finished (or skipped, or unavailable). Ready to classify | Policy Engine |
 | `retrying` | Transient, retry scheduled at `next_retry_at` | Transient Runner |
 | `held` | Transient, dependency circuit open. Nothing is scheduled | Transient Runner |
