@@ -81,6 +81,8 @@ The reasoning behind each principle is in [docs/principles.md](docs/principles.m
 | [Configuration](docs/configuration.md) | Runtime settings and full resource reference |
 | [Operations](docs/operations.md) | Operator actions, correlated logs, audit, purge |
 | [Architecture](docs/architecture.md) | Controllers, state machine, plugins, consistency |
+| [State machine](docs/state-machine.md) | States, owners, message record |
+| [Plugins](docs/plugins.md) | Plugin contracts and extension levels |
 | [Flows](docs/flows.md) | Step-by-step sequence for each situation |
 | [Use cases](docs/use-cases.md) | How the mix of failures changes by scenario |
 | [Roadmap](docs/roadmap.md) | V0 scope, milestones, non-goals, open questions |
