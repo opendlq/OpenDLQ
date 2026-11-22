@@ -49,21 +49,21 @@ OpenDLQ therefore makes classification the first step, not a manual step afterwa
 
 ## Design
 
+The design lives in the documentation, one page per component. The index is in [docs/](../README.md).
+
 | Topic | Document |
 | --- | --- |
 | Principles | [principles.md](../principles.md) |
-| Classification | [policy-engine.md](../components/policy-engine.md) |
-| Header contract | [header-contract.md](../header-contract.md) |
-| Retry, circuit breaker, probe, drain | [recovery.md](../components/transient-runner.md) |
-| Runbooks | [runbooks.md](../components/runbook-runner.md) |
-| Funnel, cost, recurrence, export | [analytics.md](../components/analytics-engine.md) |
-| Alerts | [alerts.md](../components/alerts-watcher.md) |
-| Enrichment | [enrichment.md](../components/enricher.md) |
-| Runtime and resource configuration | [configuration.md](../configuration.md) |
-| Operator actions, correlated logs, purge | [operations.md](../operations.md) |
-| Controllers, state machine, plugins, consistency | [architecture.md](../architecture.md) |
+| Controller model, components, deployment, consistency | [architecture.md](../architecture.md) |
+| States and owners | [state-machine.md](../state-machine.md) |
 | Flows | [flows.md](../flows.md) |
-| Use cases | [use-cases.md](../use-cases.md) |
+| Classification and routing | [Policy Engine](../components/policy-engine.md) |
+| Retry, circuit breaker, probe, drain | [Transient Runner](../components/transient-runner.md) |
+| Runbooks | [Runbook Runner](../components/runbook-runner.md) |
+| Funnel, cost, recurrence, findings | [Analytics Engine](../components/analytics-engine.md) |
+| Alerts | [Alerts Watcher](../components/alerts-watcher.md) |
+| Header contract | [header-contract.md](../header-contract.md) |
+| Configuration | [configuration.md](../configuration.md) |
 | V0 scope, milestones, open questions | [roadmap.md](../roadmap.md) |
 
 ## Alternatives considered
