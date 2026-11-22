@@ -39,7 +39,7 @@ Broker-native retry (SQS redrive, Kafka retry topics, RabbitMQ dead-letter excha
 - Configure everything declaratively, versioned and applied by CLI, with the API and UI as equivalent alternatives.
 - Keep the core generic. Domain-specific logic comes in through extension points.
 
-Non-goals are listed in the [roadmap](../roadmap.md#non-goals).
+Non-goals are listed in [scope](../scope.md#non-goals).
 
 ## Central thesis
 
@@ -64,7 +64,8 @@ The design lives in the documentation, one page per component. The index is in [
 | Alerts | [Alerts Watcher](../components/alerts-watcher.md) |
 | Header contract | [header-contract.md](../header-contract.md) |
 | Configuration | [configuration.md](../configuration.md) |
-| V0 scope, milestones, open questions | [roadmap.md](../roadmap.md) |
+| Non-goals, open questions | [scope.md](../scope.md) |
+| What each version ships | [roadmap](../../roadmap/README.md) |
 
 ## Alternatives considered
 
@@ -91,8 +92,8 @@ Operator reports suggest that every team builds its own DLQ tooling. That is con
 
 ## Risks
 
-- **Replay without idempotency in the consumer duplicates side effects.** Mitigation: the header contract is documented, and V0 includes an example consumer that implements it. Without the contract, replay is not safe.
+- **Replay without idempotency in the consumer duplicates side effects.** Mitigation: the header contract is documented, and the project ships an example consumer that implements it. Without the contract, replay is not safe.
 - **Wrong classification.** A transient failure marked permanent only waits for a person. A permanent failure marked transient uses up its retries and then goes to a person. The second case is bounded by the retry limit.
 - **Circuit breaker false positive.** Twenty messages with the same validation error can look like an unavailable dependency. Mitigation: the breaker counts only failures classified as transient.
-- **Ordering.** A batch replay of messages with the same partition key must keep the original order. V0 orders by `(partition_key, offset)` when draining. Order across keys is not guaranteed.
-- **Volume.** Millions of messages fill Postgres. Out of scope for V0. The store is replaceable.
+- **Ordering.** A batch replay of messages with the same partition key must keep the original order. The drain orders by `(partition_key, offset)`. Order across keys is not guaranteed.
+- **Volume.** Millions of messages fill Postgres. Payload retention and the Purger bound it; the store is replaceable.

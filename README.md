@@ -3,7 +3,7 @@
 **The open control plane for dead-letter queues.**
 Recover what can heal itself, explain what can't, and measure all of it.
 
-> **Status:** early design. The architecture is defined in [RFC 0001](docs/rfc/0001-opendlq.md). The first version targets Kafka and is not built yet. Everything below describes the intended design, not shipped features.
+> **Status:** early design. The design is in [docs/](docs/README.md). The first version, [V0](roadmap/v0.md), targets Kafka and is not built yet. Everything below describes the intended design, not shipped features.
 
 ---
 
@@ -76,7 +76,7 @@ The full index is in [docs/](docs/README.md). Good places to start:
 | [Flows](docs/flows.md) | Step-by-step sequence for each situation |
 | [Header contract](docs/header-contract.md) | The only integration a consumer needs |
 | [Configuration](docs/configuration.md) | Runtime settings and resource reference |
-| [Roadmap](docs/roadmap.md) | V0 scope, milestones, non-goals, open questions |
+| [Roadmap](roadmap/README.md) | What each version ships. V0 scope, demo, milestones |
 | [RFC 0001](docs/rfc/0001-opendlq.md) | Why OpenDLQ exists and the alternatives considered |
 
 ## License

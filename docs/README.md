@@ -1,5 +1,7 @@
 # Documentation
 
+This folder describes the target design of OpenDLQ, independent of version. What each version ships is in the [roadmap](../roadmap/README.md).
+
 Start with the principles and the architecture. Then read the page of each component you work on.
 
 ## Design
@@ -41,5 +43,5 @@ Start with the principles and the architecture. Then read the page of each compo
 | Page | Covers |
 | --- | --- |
 | [Use cases](use-cases.md) | How the mix of failures changes by scenario |
-| [Roadmap](roadmap.md) | V0 scope, milestones, non-goals, open questions |
+| [Scope](scope.md) | Non-goals and open design questions |
 | [RFC 0001](rfc/0001-opendlq.md) | Why OpenDLQ exists and the alternatives considered |
