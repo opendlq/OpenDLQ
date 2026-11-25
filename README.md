@@ -31,7 +31,6 @@ The full index is in [docs/](docs/README.md). Good places to start:
 
 | Page | Covers |
 | --- | --- |
-| [Principles](docs/principles.md) | The positions that decide trade-offs |
 | [Architecture](docs/architecture.md) | Controller model, components, deployment |
 | [Flows](docs/flows.md) | Step-by-step sequence for each situation |
 | [Specifications](specs/README.md) | Every path and problem of a message, in Gherkin |

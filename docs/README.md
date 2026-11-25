@@ -2,13 +2,12 @@
 
 This folder describes the target design of OpenDLQ, independent of version. What each version ships is in the [roadmap](../roadmap/README.md).
 
-Start with the principles and the architecture. Then read the page of each component you work on.
+Start with the architecture. Then read the page of each component you work on.
 
 ## Design
 
 | Page | Covers |
 | --- | --- |
-| [Principles](principles.md) | The positions that decide trade-offs |
 | [Architecture](architecture.md) | Controller model, components, deployment |
 | [State machine](state-machine.md) | States, owners, message record |
 | [Flows](flows.md) | Step-by-step sequence for each situation |

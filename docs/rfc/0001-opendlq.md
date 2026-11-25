@@ -53,7 +53,6 @@ The design lives in the documentation, one page per component. The index is in [
 
 | Topic | Document |
 | --- | --- |
-| Principles | [principles.md](../principles.md) |
 | Controller model, components, deployment | [architecture.md](../architecture.md) |
 | States and owners | [state-machine.md](../state-machine.md) |
 | Flows | [flows.md](../flows.md) |
