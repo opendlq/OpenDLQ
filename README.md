@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/opendlq-dark.png" alt="OpenDLQ" width="640">
+</p>
+
 # OpenDLQ
 
 **The open control plane for dead-letter queues.**
