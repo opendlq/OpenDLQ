@@ -6,7 +6,7 @@ Every message in OpenDLQ is in exactly one state. A state says what the message 
 
 - **One controller per state.** Each open state has exactly one controller that moves messages out of it automatically. That prevents duplicate work.
 - **Events come from outside.** Four sources can also move a message: the Collector (re-entry), an operator, the Purger (TTL) and an ack. Events are listed apart from controller transitions.
-- **Every write is optimistic locking.** A controller and an event can race on the same message. One wins. The other reads again. See [guarantees](guarantees.md#2-a-decision-is-applied-at-most-once).
+- **Every write is optimistic locking.** A controller and an event can race on the same message. One wins. The other reads again.
 - **Every failure returns to `ready`.** The Policy Engine is the only place where a message changes path.
 
 ## States

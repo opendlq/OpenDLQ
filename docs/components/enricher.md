@@ -43,7 +43,7 @@ A consumer that does not accept deciding without logs sets `on_unavailable: wait
 | `wait` | `continue` | Keep the message in `received` and try again until `max_wait`, then classify without logs |
 | `wait` | `operator` | Keep the message in `received` and try again until `max_wait`, then send it to `awaiting_operator` |
 
-A wait always has a maximum. No external dependency holds a message forever. See [guarantees](../guarantees.md#5-state-fails-closed-context-fails-open-by-default).
+A wait always has a maximum. No external dependency holds a message forever.
 
 The outcome is stored on the message as `enrichment_status`, an enum. The state does not say whether enrichment succeeded. `ready` only means the Policy Engine can decide.
 

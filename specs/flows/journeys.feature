@@ -35,7 +35,7 @@ Feature: Message journeys
     And "payments" comes back
     Then the canary is acked
     And the circuit closes
-    And the held messages drain to replaying at 50 msg/s, in arrival order
+    And the held messages drain to replaying at 50 msg/s, oldest first
     And every message is recovered
 
   @default

@@ -1,6 +1,6 @@
 # Design principles
 
-Principles decide trade-offs. Each one is a position a reasonable project could reject. The invariants that never break are in [guarantees](guarantees.md).
+Principles decide trade-offs. Each one is a position a reasonable project could reject.
 
 ## 1. Classify before acting.
 
@@ -47,7 +47,7 @@ Principles decide trade-offs. Each one is a position a reasonable project could 
 - Short retries stay in the consumer. OpenDLQ handles what survived them.
 - The only required dependency is Postgres. A broker, a CDC service or a columnar database is never required to run OpenDLQ.
 
-## 5. Opinionated defaults. Adaptable everywhere except the guarantees.
+## 5. Opinionated defaults. Adaptable everywhere except the core.
 
 **What it means.** Every company has its own brokers, tools, domain, scale and tolerance for risk. OpenDLQ works with no configuration, and every default can change:
 
@@ -59,11 +59,11 @@ Principles decide trade-offs. Each one is a position a reasonable project could 
 | Plugins | Integrations and domain logic | Broker, log backend, notifier, a team's classifier |
 | Deployment | Scale and footprint | One binary and Postgres, up to split components and ClickHouse |
 
-The core does not adapt: the state machine, the [guarantees](guarantees.md), the audit log, the header contract, the resource model, the analytics calculations and the runbook guardrails.
+The core does not adapt: the state machine, the audit log, the header contract, the resource model, the analytics calculations and the runbook guardrails.
 
-**Why.** Two installations must still be able to compare their numbers and share their runbooks. If the core adapted, every installation would speak a different language and the guarantees would mean nothing.
+**Why.** Two installations must still be able to compare their numbers and share their runbooks. If the core adapted, every installation would speak a different language.
 
 **Consequences.**
 - Every default is documented and can be overridden in a file.
-- Adaptation never weakens a guarantee. A company can make context required. It cannot make state optional.
+- Adaptation never changes the core. A company can make context required. It cannot make state optional.
 - Changing the core is a fork. That is a legitimate choice. Ordinary adaptation should never need one.

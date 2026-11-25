@@ -20,7 +20,7 @@ All interfaces expose the same operations and write to the same audit log.
 | **List by cause** | Consumer, cause, dependency, period | Groups of failed messages with count, age and trend |
 | **Inspect** | One message or group | Payload, headers, error, attempts, correlated logs, trace link |
 | **Reclassify** | One message or group | Change the kind. Permanent to transient sends the messages back to retrying |
-| **Replay** | One message or batch | Send to the original topic or another target, with an idempotency key, in partition order |
+| **Replay** | One message or batch | Send to the original topic or another target, with an idempotency key and the original partition key |
 | **Edit and replay** | One message or batch | Change the payload, then replay |
 | **Discard** | One message or batch | Close with a recorded reason |
 | **Approve** | A runbook run | Allow a supervised runbook run to proceed |

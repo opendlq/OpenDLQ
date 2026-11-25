@@ -61,9 +61,7 @@ When the probe passes, the breaker closes.
 
 ### Controlled drain
 
-After the breaker closes, the held backlog drains in arrival order, at a configurable rate (default 50 msg/s). The rate keeps a dependency that just recovered from going down again under the backlog.
-
-Messages with the same partition key replay in their original order.
+After the breaker closes, the held backlog drains oldest first, at a configurable rate (default 50 msg/s). The rate keeps a dependency that just recovered from going down again under the backlog.
 
 ### Recovery detection
 

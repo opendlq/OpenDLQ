@@ -2,8 +2,6 @@
 
 Executable descriptions of how a message moves through OpenDLQ, in [Gherkin](https://cucumber.io/docs/gherkin/reference/). Like [docs/](../docs/README.md), they describe the target design, independent of version. They will run as acceptance tests in Go with `godog`.
 
-The invariants under concurrency and crashes are not here. They are in [guarantees](../docs/guarantees.md), and will be checked with TLA+.
-
 ## Two levels
 
 | File | Describes |
@@ -17,7 +15,7 @@ The invariants under concurrency and crashes are not here. They are in [guarante
 | [enrichment](flows/enrichment.feature) | Every `enrichment_status`, reuse by group, wait mode |
 | [classification](flows/classification.feature) | The five signals, their precedence, routing |
 | [transient](flows/transient.feature) | Retry schedule, exhaustion, failed replays |
-| [breaker](flows/breaker.feature) | Opening the circuit, probe, drain, order by key |
+| [breaker](flows/breaker.feature) | Opening the circuit, probe, drain |
 | [confirmation](flows/confirmation.feature) | Ack and silence modes, timeouts, late and duplicate acks |
 | [runbook](flows/runbook.feature) | Match, actions, approval, guardrails, failure, expiry |
 | [operator](flows/operator.feature) | Replay, edit, reclassify, discard, batches |

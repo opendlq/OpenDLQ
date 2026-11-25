@@ -62,12 +62,11 @@ Feature: Circuit breaker, probe and drain
     And no message is used as a probe
 
   @transition:held->retrying @default
-  Scenario: The probe passes and the backlog drains in order
+  Scenario: The probe passes and the backlog drains oldest first
     Given the circuit for "payments" is open with 500 held messages
     When the canary is acked
     Then the circuit closes
     And held messages move to retrying at 50 msg/s, oldest first
-    And messages with the same partition key replay in their original order
 
   @default @failure
   Scenario: The dependency fails again during the drain

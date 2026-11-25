@@ -20,7 +20,7 @@ The problems below show up repeatedly in operator reports (threads on r/aws, r/s
 
 - **No context.** The DLQ keeps the payload. It usually does not keep the exception, the consumer that failed, the number of attempts or the dependency involved.
 - **No distinction between causes.** A message that failed because a dependency was briefly unavailable sits next to a message with an invalid schema. The first one only needs a retry. The second one never succeeds.
-- **Manual replay.** Replay is a script or a redrive button, usually without an idempotency key, a record of who ran it, ordering or rate limits.
+- **Manual replay.** Replay is a script or a redrive button, usually without an idempotency key, a record of who ran it or rate limits.
 - **No aggregation.** A thousand messages with the same cause show up as a thousand items, not as one problem.
 - **No self-recovery.** The most common case reported is an unstable dependency. The fix is to wait and retry, but that takes a human.
 - **Alerts without answers.** Depth alerts exist (CloudWatch, Datadog, cron). The recurring report is that the alert fires and the investigation starts from zero.
@@ -54,8 +54,7 @@ The design lives in the documentation, one page per component. The index is in [
 | Topic | Document |
 | --- | --- |
 | Principles | [principles.md](../principles.md) |
-| Guarantees | [guarantees.md](../guarantees.md) |
-| Controller model, components, deployment, consistency | [architecture.md](../architecture.md) |
+| Controller model, components, deployment | [architecture.md](../architecture.md) |
 | States and owners | [state-machine.md](../state-machine.md) |
 | Flows | [flows.md](../flows.md) |
 | Classification and routing | [Policy Engine](../components/policy-engine.md) |
@@ -73,7 +72,7 @@ The design lives in the documentation, one page per component. The index is in [
 | Alternative | Limitation |
 | --- | --- |
 | Broker-native retry (SQS redrive, Kafka retry topics, RabbitMQ DLX) | Retries without distinguishing causes. Does not open a circuit. Does not aggregate. Does not record actions. |
-| Republish scripts (`sqsmover` and similar) | No idempotency, no record, no ordering, no rate limit. |
+| Republish scripts (`sqsmover` and similar) | No idempotency, no record, no rate limit. |
 | Retry inside the consumer (Resilience4j, Kafka Cascade, KDLQ) | Covers short transient failures. Blocks the partition while waiting. No central view. |
 | DLQ browser with edit and redrive (DLQ Revive, internal UIs) | Covers visibility and audited replay. Does not classify, self-heal or measure cost. |
 | Observability over the DLQ (CloudWatch, Datadog, Sentry Queues) | Measures depth, age and attempts. Does not act. Does not classify. |
@@ -96,5 +95,5 @@ Operator reports suggest that every team builds its own DLQ tooling. That is con
 - **Replay without idempotency in the consumer duplicates side effects.** Mitigation: the header contract is documented, and the project ships an example consumer that implements it. Without the contract, replay is not safe.
 - **Wrong classification.** A transient failure marked permanent only waits for a person. A permanent failure marked transient uses up its retries and then goes to a person. The second case is bounded by the retry limit.
 - **Circuit breaker false positive.** Twenty messages with the same validation error can look like an unavailable dependency. Mitigation: the breaker counts only failures classified as transient.
-- **Ordering.** A batch replay of messages with the same partition key must keep the original order. The drain orders by `(partition_key, offset)`. Order across keys is not guaranteed.
+- **Ordering.** Replays are not ordered, not even per partition key. A consumer that applies "last write wins" updates can end in the wrong state. Mitigation: the consumer checks a version or a timestamp. The DLQ already broke the order when the message failed.
 - **Volume.** Millions of messages fill Postgres. Payload retention and the Purger bound it; the store is replaceable.

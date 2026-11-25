@@ -14,8 +14,6 @@ The **Policy Engine** is the only component that decides which path a message ta
 
 A runner decides *how and when* within its path, following the declared `Policy`. It never picks another path. When a runner reaches the end of its path without success (a runbook action fails, an approval is rejected), it returns the message to `ready` with the outcome recorded, and the Policy Engine decides again. Operators are the other decision point: their actions are explicit and audited.
 
-In Kubernetes terms, the Policy Engine plays the scheduler and the runners play the kubelet.
-
 ```mermaid
 flowchart LR
     DLQ[(External DLQ)] --> Source
@@ -91,14 +89,3 @@ The code is the same in every profile. Coordination lives in the State Store (cl
 ## Store requirements
 
 See [State Store](components/state-store.md#store-requirements).
-
-## Consistency guarantees
-
-| Where | Guarantee | Mechanism |
-| --- | --- | --- |
-| Ingestion | No message lost; none duplicated in the store | Insert before offset commit; unique constraint on `(topic, partition, offset)` |
-| State changes | One decision per message at a time | `SKIP LOCKED` + compare-and-set on `version` |
-| Replay | A replay exists only if its decision was committed. Published at least once, with the same `x-dlq-attempt` on every copy | Transactional outbox |
-| Audit | Every state change recorded | `transitions` in the same transaction |
-| Analytics | Eventual, with a declared maximum lag | CDC or periodic rollup |
-| Consumer | Not guaranteed by OpenDLQ | Idempotency key in the header; the consumer deduplicates |

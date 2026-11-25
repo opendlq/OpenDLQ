@@ -139,7 +139,7 @@ sequenceDiagram
 ```
 
 - Held messages keep their attempt count. Time held is not an attempt.
-- The drain releases messages in arrival order, at `drain.rate`, and keeps partition-key order.
+- The drain releases messages oldest first, at `drain.rate`.
 - Opening and closing the circuit are events. The Alerts Watcher can alert on them.
 
 ## 6. Permanent failure and alert

@@ -48,7 +48,6 @@ Feature: Operator actions
     Given 300 messages in awaiting_operator with group_key "missing:sku"
     When the operator replays the group at 20 msg/s
     Then the messages move to replaying at 20 msg/s
-    And messages with the same partition key keep their order
 
   @default
   Scenario: Every interface does the same thing
